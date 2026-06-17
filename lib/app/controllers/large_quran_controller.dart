@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:get_storage/get_storage.dart';
 import '../services/tafseer_service.dart';
+import 'package:qcf_quran_plus/qcf_quran_plus.dart';
 
 class LargeQuranController extends GetxController {
   TafseerService get _tafseerService => Get.find<TafseerService>();
@@ -21,17 +23,33 @@ class LargeQuranController extends GetxController {
   var isPlaying = false.obs;
   var currentPlayingVerse = (-1).obs; // -1 means no verse is playing
   var lastBookmark = Rx<String?>(null); // Stores "surah:verse" string or null
+  var lastReadSurah = 1.obs;
+  var lastReadVerse = 1.obs;
+  var lastReadPage = 1.obs;
 
   @override
   void onInit() {
     super.onInit();
     loadBookmark();
+    lastReadSurah.value = _storage.read('last_read_surah') ?? 1;
+    lastReadVerse.value = _storage.read('last_read_verse') ?? 1;
+    lastReadPage.value = _storage.read('last_read_page') ?? 1;
   }
 
   // --- Persistence ---
 
+  void saveLastReadPosition({required int surah, required int verse, required int page}) {
+    lastReadSurah.value = surah;
+    lastReadVerse.value = verse;
+    lastReadPage.value = page;
+    _storage.write('last_read_surah', surah);
+    _storage.write('last_read_verse', verse);
+    _storage.write('last_read_page', page);
+  }
+
   void saveLastRead(int surahNumber) {
-    _storage.write('last_read_surah', surahNumber);
+    int page = quran.getPageNumber(surahNumber, 1);
+    saveLastReadPosition(surah: surahNumber, verse: 1, page: page);
   }
 
   int getLastReadSurah() {
@@ -173,7 +191,17 @@ class LargeQuranController extends GetxController {
       String url =
           'https://cdn.islamic.network/quran/audio/128/ar.alafasy/$absoluteVerse.mp3';
 
-      await _audioPlayer.setUrl(url);
+      await _audioPlayer.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(url),
+          tag: MediaItem(
+            id: 'verse_$absoluteVerse',
+            album: 'Quran Recitation',
+            title: '${getSurahNameEnglish(surahNumber)} : $verseNumber',
+            artist: 'Mishary Alafasy',
+          ),
+        ),
+      );
       await _audioPlayer.play();
 
       _audioPlayer.playerStateStream.listen((state) {
@@ -280,6 +308,9 @@ class LargeQuranController extends GetxController {
   var searchResults = <QuranSearchResult>[].obs;
   var isSearching = false.obs;
 
+  // Search provider function, override in tests if needed
+  Map Function(String) searchWordsProvider = searchWords;
+
   void searchQuran(String query) async {
     searchQuery.value = query;
     if (query.isEmpty) {
@@ -295,17 +326,24 @@ class LargeQuranController extends GetxController {
     // Run search in a future to avoid blocking UI immediately
     await Future.delayed(Duration.zero);
 
-    for (int surah = 1; surah <= 114; surah++) {
-      int verseCount = quran.getVerseCount(surah);
-      for (int verse = 1; verse <= verseCount; verse++) {
-        String text = getVerse(surah, verse);
-        // Simple case-insensitive search (though Arabic usually matches directly)
-        if (text.contains(query)) {
-          results.add(
-            QuranSearchResult(surah: surah, verse: verse, text: text),
-          );
+    try {
+      final normalizedQuery = normalise(query);
+      if (normalizedQuery.isNotEmpty) {
+        final searchMap = searchWordsProvider(normalizedQuery);
+        final List? matchesList = searchMap['result'];
+        if (matchesList != null) {
+          for (var match in matchesList) {
+            final int surah = match['sora'];
+            final int ayah = match['aya_no'];
+            final String text = match['text'];
+            results.add(
+              QuranSearchResult(surah: surah, verse: ayah, text: text),
+            );
+          }
         }
       }
+    } catch (e) {
+      print('Error in qcf search: $e');
     }
 
     searchResults.assignAll(results);

@@ -9,6 +9,60 @@ class Reciter {
     required this.serverUrl,
   });
 
+  String get imagePath {
+    switch (name) {
+      case "Yasser Al-Dosari":
+        return "assets/images/reciters/icfe-الدوسري.png";
+      case "Mohamed Siddiq El-Minshawi (Mujawwad)":
+        return "assets/images/reciters/icfe-المنشاوي.png";
+      case "Abdul Basit Abdul Samad":
+        return "assets/images/reciters/icfe-عبدالباسط.png";
+      case "Mohammad Mahmoud Al-Tablawi":
+        return "assets/images/reciters/icfe-الطبلاوي.png";
+      case "Saad Al-Ghamdi":
+        return "assets/images/reciters/icfe-الغامدي.png";
+      case "Mahmoud Khalil Al-Hussary":
+        return "assets/images/reciters/icfe-الحصري.png";
+      case "Abdul Rahman Al-Sudais":
+        return "assets/images/reciters/icfe-السديس.png";
+      case "Mishary Rashid Alafasy":
+        return "assets/images/reciters/icfe-العفاسي.png";
+      case "Maher Al-Muaiqly":
+        return "assets/images/reciters/icfe-المعيقلي.png";
+      case "Mustafa Ismail":
+        return "assets/images/reciters/icfe-مصطفي إسماعيل.png";
+      case "Ahmed Al-Ajmi":
+        return "assets/images/reciters/icfe-العجمي.png";
+      case "Saud Al-Shuraim":
+        return "assets/images/reciters/icfe-الشريم.png";
+      case "Rashid Al-Soufi (Hafs)":
+        return "assets/images/reciters/icfe-راشد الصوفي.png";
+      case "Khalid Al-Jalil":
+        return "assets/images/reciters/icfe-خالد جليل.png";
+      case "Nasser Al-Qatami":
+        return "assets/images/reciters/icfe-القطامي.png";
+      case "Fares Abbad":
+        return "assets/images/reciters/icfe-فارس عباد.png";
+      case "Mohamed Al-Luhaidan":
+        return "assets/images/reciters/icfe-اللحيدان.png";
+      case "Islam Sobhi":
+        return "assets/images/reciters/icfe-إسلام صبحي.png";
+      case "Bandar Baleila":
+        return "assets/images/reciters/icfe-بدر بليله.png";
+      case "Muhammad Ayyub":
+        return "assets/images/reciters/icfe-محمد ايوب.png";
+      default:
+        return "assets/images/quran_cover.png";
+    }
+  }
+
+  String get narration {
+    if (name.contains("Qalon") || arabicName.contains("قالون")) {
+      return "رواية قالون عن نافع";
+    }
+    return "رواية حفص عن عاصم";
+  }
+
   static const List<Reciter> reciters = [
     Reciter(
       name: "Yasser Al-Dosari",
@@ -36,8 +90,8 @@ class Reciter {
       serverUrl: "https://server7.mp3quran.net/s_gmd/",
     ),
     Reciter(
-      name: "Mahmoud Khalil Al-Hussary (Qalon)",
-      arabicName: "محمود خليل الحصري (قالون)",
+      name: "Mahmoud Khalil Al-Hussary",
+      arabicName: "محمود خليل الحصري ",
       serverUrl: "https://server13.mp3quran.net/husr/Rewayat-Qalon-A-n-Nafi/",
     ),
     Reciter(

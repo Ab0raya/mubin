@@ -25,6 +25,7 @@ class QuranAudioController extends GetxController {
 
   // State
   var isPlaying = false.obs;
+  var processingState = ProcessingState.idle.obs;
   var currentReciter = Reciter.reciters[7].obs; // Default to Mishary
   var currentSurahIndex = 1.obs; // 1-indexed (Al-Fatiha)
   var duration = Duration.zero.obs;
@@ -36,6 +37,7 @@ class QuranAudioController extends GetxController {
   // -1 means error or not started (handled by null check)
   var downloadProgress = <int, double>{}.obs;
   var downloadedSurahs = <int>[].obs; // Track downloaded for current reciter
+  var isDownloadingAll = false.obs;
 
   // Playback Modes
   var isShuffle = false.obs;
@@ -56,13 +58,16 @@ class QuranAudioController extends GetxController {
     super.onInit();
     _loadPlaylists();
     _loadFavorites(); // Legacy/Quick favorites
-    _checkDownloadedSurahs();
+    checkDownloadedSurahs();
     _setupAudioListeners();
   }
 
   void _setupAudioListeners() {
     audioPlayer.playerStateStream.listen((state) {
       isPlaying.value = state.playing;
+      processingState.value = state.processingState;
+      isLoading.value = state.processingState == ProcessingState.loading ||
+          state.processingState == ProcessingState.buffering;
       if (state.processingState == ProcessingState.completed) {
         _onTrackFinished();
       }
@@ -236,20 +241,31 @@ class QuranAudioController extends GetxController {
 
   // --- Download Logic ---
 
-  Future<void> _checkDownloadedSurahs() async {
-    downloadedSurahs.clear();
+  Future<void> checkDownloadedSurahs() async {
     final dir = await getApplicationDocumentsDirectory();
     final reciterDir = Directory("${dir.path}/${currentReciter.value.name}");
+    final List<int> downloaded = [];
 
     if (await reciterDir.exists()) {
-      for (int i = 1; i <= 114; i++) {
-        final formattedIndex = i.toString().padLeft(3, '0');
-        final file = File("${reciterDir.path}/$formattedIndex.mp3");
-        if (await file.exists()) {
-          downloadedSurahs.add(i);
+      try {
+        final files = await reciterDir.list().toList();
+        for (final file in files) {
+          if (file is File) {
+            final fileName = file.path.split(Platform.pathSeparator).last;
+            if (fileName.endsWith('.mp3')) {
+              final surahStr = fileName.substring(0, fileName.length - 4);
+              final surahIndex = int.tryParse(surahStr);
+              if (surahIndex != null && surahIndex >= 1 && surahIndex <= 114) {
+                downloaded.add(surahIndex);
+              }
+            }
+          }
         }
+      } catch (e) {
+        // Safe fallback
       }
     }
+    downloadedSurahs.assignAll(downloaded);
   }
 
   bool isSurahDownloaded(int surahIndex) {
@@ -325,6 +341,48 @@ class QuranAudioController extends GetxController {
     } catch (e) {
       downloadProgress.remove(surahIndex);
       Get.snackbar("Download Failed", "Error downloading Surah: $e");
+    }
+  }
+
+  Future<void> downloadAllSurahs() async {
+    if (isDownloadingAll.value) return;
+    isDownloadingAll.value = true;
+
+    try {
+      final List<int> toDownload = [];
+      for (int i = 1; i <= 114; i++) {
+        if (!isSurahDownloaded(i)) {
+          toDownload.add(i);
+        }
+      }
+
+      if (toDownload.isEmpty) {
+        Get.snackbar(
+          "Already Downloaded",
+          "All surahs are already downloaded for this reciter.",
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        isDownloadingAll.value = false;
+        return;
+      }
+
+      final initialReciter = currentReciter.value.name;
+
+      for (final surahIndex in toDownload) {
+        if (currentReciter.value.name != initialReciter || !isDownloadingAll.value) {
+          Get.snackbar(
+            "Download Stopped",
+            "Downloading all surahs has been stopped.",
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          break;
+        }
+        await downloadSurah(surahIndex);
+      }
+    } catch (e) {
+      debugPrint("Error downloading all surahs: $e");
+    } finally {
+      isDownloadingAll.value = false;
     }
   }
 
@@ -524,7 +582,6 @@ class QuranAudioController extends GetxController {
         }
         break;
       case AudioPlaybackSource.all:
-      default:
         if (isShuffle.value) {
           final random = Random();
           final nextIndex = random.nextInt(114) + 1;
@@ -555,7 +612,7 @@ class QuranAudioController extends GetxController {
     if (currentReciter.value.name != reciter.name) {
       currentReciter.value = reciter;
       // When reciter changes, we should update downloadedSurahs for the new reciter
-      _checkDownloadedSurahs();
+      checkDownloadedSurahs();
     }
     playSurah(track.surahIndex);
   }
@@ -622,7 +679,6 @@ class QuranAudioController extends GetxController {
         }
         break;
       case AudioPlaybackSource.all:
-      default:
         if (currentSurahIndex.value > 1) {
           playSurah(currentSurahIndex.value - 1);
         } else if (loopState.value == LoopState.all) {
@@ -639,7 +695,7 @@ class QuranAudioController extends GetxController {
   void changeReciter(Reciter reciter) {
     if (currentReciter.value != reciter) {
       currentReciter.value = reciter;
-      _checkDownloadedSurahs(); // Check downloads for new reciter
+      checkDownloadedSurahs(); // Check downloads for new reciter
       // Restart current surah with new reciter
       playSurah(currentSurahIndex.value);
     }

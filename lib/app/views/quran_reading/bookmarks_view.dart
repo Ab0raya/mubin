@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import '../../../../utils/colors.dart';
 import '../../controllers/large_quran_controller.dart';
+import '../../controllers/settings_controller.dart';
 import 'surah_detail_view.dart';
 import 'normal_quran_view.dart';
 import 'image_quran_view.dart';
@@ -72,7 +73,29 @@ class BookmarksView extends StatelessWidget {
                 ),
                 child: InkWell(
                   onTap: () {
-                    _showNavigationDialog(context, surahNumber, verseNumber);
+                    final settingsController = Get.put(SettingsController());
+                    final imageController = Get.put(QuranImageController());
+                    final largeQuranController = Get.find<LargeQuranController>();
+                    final favMode = settingsController.favReadingMode.value;
+                    final page = quran.getPageNumber(surahNumber, verseNumber);
+
+                    if (favMode == 'image') {
+                      if (imageController.isDownloaded.value) {
+                        Get.to(() => ImageQuranView(initialPage: page));
+                      } else {
+                        imageController.showDownloadDialog(onSuccess: () {
+                          Get.to(() => ImageQuranView(initialPage: page));
+                        });
+                      }
+                    } else if (favMode == 'large') {
+                      largeQuranController.currentSurahNumber.value = surahNumber;
+                      Get.to(() => SurahDetailView(
+                            surahNumber: surahNumber,
+                            initialVerse: verseNumber,
+                          ));
+                    } else {
+                      Get.to(() => NormalQuranView(initialPage: page));
+                    }
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
@@ -144,93 +167,4 @@ class BookmarksView extends StatelessWidget {
     );
   }
 
-  void _showNavigationDialog(
-    BuildContext context,
-    int surahNumber,
-    int verseNumber,
-  ) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Continue Reading',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.gold,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.menu_book, color: AppColors.gold),
-              title: const Text(
-                'Normal Mode (Page View)',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Get.back();
-                // Navigate to Normal Quran Mode
-                int page = quran.getPageNumber(surahNumber, verseNumber);
-                Get.to(() => NormalQuranView(initialPage: page));
-              },
-            ),
-            const Divider(color: Colors.white12),
-            ListTile(
-              leading: const Icon(Icons.format_size, color: AppColors.gold),
-              title: const Text(
-                'Large Font Mode (Scroll View)',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Get.back();
-                // Navigate to Large Font Mode
-                final controller = Get.find<LargeQuranController>();
-                controller.currentSurahNumber.value = surahNumber;
-                Get.to(
-                  () => SurahDetailView(
-                    surahNumber: surahNumber,
-                    initialVerse: verseNumber,
-                  ),
-                );
-              },
-            ),
-            const Divider(color: Colors.white12),
-            ListTile(
-              leading: const Icon(Icons.image, color: AppColors.gold),
-              title: const Text(
-                'Images Mode (Actual Page)',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Get.back();
-                int page = quran.getPageNumber(surahNumber, verseNumber);
-                // Check if downloaded? We should probably let the view handle it
-                // or check controller here.
-                // Ideally check controller.
-                final imageController = Get.put(QuranImageController());
-                if (imageController.isDownloaded.value) {
-                  Get.to(() => ImageQuranView(initialPage: page));
-                } else {
-                  Get.snackbar(
-                    'Download Required',
-                    'Please download Quran images from the main Quran page first.',
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
 }

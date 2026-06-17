@@ -16,6 +16,7 @@ import '../views/quran_reading/large_quran_view.dart';
 import '../views/quran_reading/tafseer_view.dart';
 import '../views/quran_reading/bookmarks_view.dart';
 import '../views/quran_reading/image_quran_view.dart';
+import '../views/quran_reading/image_surah_list_view.dart';
 import '../views/praying_tracker/prayer_report_view.dart';
 import '../views/auth/login_view.dart';
 import '../views/auth/register_view.dart';
@@ -88,7 +89,7 @@ class AppPages {
     GetPage(name: AppRoutes.quranLarge, page: () => const LargeQuranView()),
     GetPage(name: AppRoutes.quranTafseer, page: () => const TafseerView()),
     GetPage(name: AppRoutes.quranBookmarks, page: () => const BookmarksView()),
-    GetPage(name: AppRoutes.quranImage, page: () => const ImageQuranView()),
+    GetPage(name: AppRoutes.quranImage, page: () => const ImageSurahListView()),
     GetPage(name: AppRoutes.prayerReport, page: () => const PrayerReportView()),
     GetPage(
       name: AppRoutes.login,

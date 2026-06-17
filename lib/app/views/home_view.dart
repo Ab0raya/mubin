@@ -4,7 +4,7 @@ import 'package:mubin/app/controllers/home_controller.dart';
 import 'package:mubin/app/views/widgets/header_widget.dart';
 import 'package:mubin/app/views/widgets/menu_grid_widget.dart';
 import 'package:mubin/app/views/widgets/prayer_schedule_widget.dart';
-import 'package:mubin/app/views/widgets/verse_widget.dart';
+import 'package:mubin/app/views/widgets/quran_progress_widget.dart';
 
 import '../../utils/colors.dart';
 
@@ -82,11 +82,11 @@ class HomeView extends GetView<HomeController> {
                     const SizedBox(height: 20),
                     const HeaderWidget(),
                     const SizedBox(height: 30),
+                    const QuranProgressWidget(),
+                    const SizedBox(height: 30),
                     const MenuGridWidget(),
                     const SizedBox(height: 30),
                     const PrayerScheduleWidget(),
-                    const SizedBox(height: 30),
-                    const VerseWidget(),
                     const SizedBox(height: 100), // Spacing for bottom nav
                   ],
                 ),

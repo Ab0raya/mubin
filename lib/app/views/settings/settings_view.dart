@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:mubin/app/controllers/settings_controller.dart';
 import 'package:mubin/utils/colors.dart';
-import 'package:mubin/utils/constants.dart';
 
 class SettingsView extends GetView<SettingsController> {
   const SettingsView({super.key});
@@ -29,12 +27,14 @@ class SettingsView extends GetView<SettingsController> {
             _buildSectionHeader('appearance_language'.tr),
             _buildSettingsCard([
               _buildLanguageTile(),
-              _buildSwitchTile(
-                'dark_mode'.tr,
-                'easy_on_eyes'.tr,
-                controller.isDarkMode.value,
-                (val) {},
-              ), // Mock for now
+              Obx(
+                () => _buildSwitchTile(
+                  'dark_mode'.tr,
+                  'easy_on_eyes'.tr,
+                  controller.isDarkMode.value,
+                  (val) => controller.updateDarkMode(val),
+                ),
+              ),
             ]),
 
             const SizedBox(height: 24),
@@ -50,6 +50,11 @@ class SettingsView extends GetView<SettingsController> {
                 'standard_method'.tr,
                 Icons.accessibility_new,
               ),
+            ]),
+
+            const SizedBox(height: 24),
+            _buildSectionHeader('quran_reading'.tr),
+            _buildSettingsCard([
               _buildTile(
                 'quran_reciter'.tr,
                 controller.quranReciter.value,
@@ -65,6 +70,27 @@ class SettingsView extends GetView<SettingsController> {
                   max: 60,
                 ),
               ),
+              _buildColorPickerTile(
+                title: 'reading_bg_color'.tr,
+                colors: const [
+                  0xFF121212, // Dark Charcoal
+                  0xFF0F251D, // Deep Green
+                  0xFFF4ECD8, // Warm Sepia
+                  0xFFFFFFFF, // White
+                ],
+                selectedValue: controller.readingBgColor,
+                onSelected: (val) => controller.updateReadingBgColor(val),
+              ),
+              _buildColorPickerTile(
+                title: 'reading_text_color'.tr,
+                colors: const [
+                  0xFFFFFFFF, // White
+                  0xFF111111, // Black
+                ],
+                selectedValue: controller.readingTextColor,
+                onSelected: (val) => controller.updateReadingTextColor(val),
+              ),
+              _buildFavModeTile(),
             ]),
 
             const SizedBox(height: 24),
@@ -289,6 +315,104 @@ class SettingsView extends GetView<SettingsController> {
           onChanged: onChanged,
         ),
         const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildFavModeTile() {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      title: Text(
+        'fav_reading_mode'.tr,
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+      trailing: Obx(
+        () => DropdownButton<String>(
+          value: controller.favReadingMode.value,
+          dropdownColor: AppColors.card,
+          underline: const SizedBox(),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+          style: const TextStyle(color: Colors.white),
+          items: [
+            DropdownMenuItem(value: 'normal', child: Text('mode_normal'.tr)),
+            DropdownMenuItem(value: 'image', child: Text('mode_images'.tr)),
+            DropdownMenuItem(value: 'large', child: Text('mode_large'.tr)),
+          ],
+          onChanged: (val) {
+            if (val != null) controller.updateFavReadingMode(val);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorPickerTile({
+    required String title,
+    required List<int> colors,
+    required RxInt selectedValue,
+    required Function(int) onSelected,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          title: Text(
+            title,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+          child: Obx(
+            () => Row(
+              children: colors.map((colorVal) {
+                final isSelected = selectedValue.value == colorVal;
+                final color = Color(colorVal);
+                
+                // For white or cream backgrounds, show a subtle border if not selected
+                final showBorder = colorVal == 0xFFFFFFFF || colorVal == 0xFFF4ECD8;
+
+                return GestureDetector(
+                  onTap: () => onSelected(colorVal),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.secondary
+                            : (showBorder ? Colors.white30 : Colors.transparent),
+                        width: isSelected ? 3 : 1.5,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.secondary.withOpacity(0.5),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: isSelected
+                        ? Icon(
+                            Icons.check,
+                            color: colorVal == 0xFFFFFFFF || colorVal == 0xFFF4ECD8
+                                ? Colors.black
+                                : Colors.white,
+                            size: 16,
+                          )
+                        : null,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ],
     );
   }

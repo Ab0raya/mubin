@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:just_audio_background/just_audio_background.dart'; // Import this
+import 'package:qcf_quran_plus/qcf_quran_plus.dart';
 import 'app/translations/app_translations.dart';
 import 'app/routes/app_routes.dart';
 import 'app/services/api_service.dart';
@@ -13,8 +14,16 @@ import 'utils/constants.dart';
 import 'app/controllers/settings_controller.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   //tesr git 
   await GetStorage.init();
+
+  // Initialize QCF Fonts at startup
+  await QcfFontLoader.setupFontsAtStartup(
+    onProgress: (double progress) {
+      debugPrint('Font Loading Progress: ${(progress * 100).toStringAsFixed(1)}%');
+    },
+  );
 
   // Initialize JustAudioBackground
   await JustAudioBackground.init(

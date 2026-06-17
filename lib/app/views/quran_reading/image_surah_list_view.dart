@@ -4,16 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import '../../../utils/colors.dart';
 import '../../controllers/large_quran_controller.dart';
-import 'normal_quran_view.dart';
+import 'image_quran_view.dart';
 
-class NormalSurahListView extends StatefulWidget {
-  const NormalSurahListView({super.key});
+class ImageSurahListView extends StatefulWidget {
+  const ImageSurahListView({super.key});
 
   @override
-  State<NormalSurahListView> createState() => _NormalSurahListViewState();
+  State<ImageSurahListView> createState() => _ImageSurahListViewState();
 }
 
-class _NormalSurahListViewState extends State<NormalSurahListView> {
+class _ImageSurahListViewState extends State<ImageSurahListView> {
   final LargeQuranController controller = Get.put(LargeQuranController());
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -41,7 +41,7 @@ class _NormalSurahListViewState extends State<NormalSurahListView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('mode_normal'.tr),
+        title: Text('mode_images'.tr),
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.gold,
       ),
@@ -139,9 +139,9 @@ class _NormalSurahListViewState extends State<NormalSurahListView> {
                           ),
                         ),
                         onTap: () {
-                          // Navigate to Normal Quran View at start of Surah
+                          // Navigate to Image Quran View at start page of Surah
                           int page = quran.getPageNumber(surahNumber, 1);
-                          Get.to(() => NormalQuranView(initialPage: page));
+                          Get.to(() => ImageQuranView(initialPage: page));
                         },
                       );
                     },

@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:mubin/utils/colors.dart';
 import '../../controllers/quran_image_controller.dart';
 import '../../controllers/large_quran_controller.dart';
+import 'package:qcf_quran_plus/qcf_quran_plus.dart';
+import 'widgets/surah_selection_sheet.dart';
 
 class ImageQuranView extends StatefulWidget {
   final int? initialPage;
@@ -17,19 +20,26 @@ class ImageQuranView extends StatefulWidget {
 class _ImageQuranViewState extends State<ImageQuranView> {
   late PageController _pageController;
   final QuranImageController imageController = Get.find<QuranImageController>();
-  // We might need LargeQuranController for bookmarking if we want to reuse its logic
   final LargeQuranController largeQuranController = Get.put(
     LargeQuranController(),
   );
 
-  bool _showControls = true;
+  int _currentPage = 1;
+  bool _showControls = false;
+  int _currentQuarter = 1;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: (widget.initialPage ?? 1) - 1,
-    );
+    _currentPage = widget.initialPage ?? 1;
+    _currentQuarter = _getQuarterForPage(_currentPage);
+
+    _pageController = PageController(initialPage: _currentPage - 1);
+
+    // Save last read position for the initial page at startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveProgressForPage(_currentPage);
+    });
   }
 
   @override
@@ -38,25 +48,183 @@ class _ImageQuranViewState extends State<ImageQuranView> {
     super.dispose();
   }
 
-  void _toggleControls() {
-    setState(() {
-      _showControls = !_showControls;
-    });
+  void _saveProgressForPage(int pageNumber) {
+    int foundSurah = 1;
+    int foundVerse = 1;
+    bool found = false;
+    for (int s = 1; s <= 114; s++) {
+      int count = quran.getVerseCount(s);
+      for (int v = 1; v <= count; v++) {
+        if (quran.getPageNumber(s, v) == pageNumber) {
+          foundSurah = s;
+          foundVerse = v;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    largeQuranController.saveLastReadPosition(
+      surah: foundSurah,
+      verse: foundVerse,
+      page: pageNumber,
+    );
   }
 
-  void _saveBookmark(int pageIndex) {
-    // pageIndex is 0-based, quran pages are 1-based
-    int pageNumber = pageIndex + 1;
-    // Get surah and verse for this page to be compatible with existing bookmark system
-    // quran package has getVersesTextByPage, or we can just pick the first surah/verse on page
-    // getSurahAndVersesFromPage returns Map<int, List<int>> (Surah number -> list of verses)
-    // We'll take the first one.
+  int _getSurahForPage(int pageNumber) {
+    int foundSurah = 1;
+    bool found = false;
+    for (int s = 1; s <= 114; s++) {
+      int count = quran.getVerseCount(s);
+      for (int v = 1; v <= count; v++) {
+        if (quran.getPageNumber(s, v) == pageNumber) {
+          foundSurah = s;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    return foundSurah;
+  }
 
+  int _getJuzForPage(int pageNumber) {
+    int foundSurah = 1;
+    int foundVerse = 1;
+    bool found = false;
+    for (int s = 1; s <= 114; s++) {
+      int count = quran.getVerseCount(s);
+      for (int v = 1; v <= count; v++) {
+        if (quran.getPageNumber(s, v) == pageNumber) {
+          foundSurah = s;
+          foundVerse = v;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    return quran.getJuzNumber(foundSurah, foundVerse);
+  }
+
+  int _getQuarterForPage(int pageNumber) {
+    int foundSurah = 1;
+    int foundVerse = 1;
+    bool found = false;
+    for (int s = 1; s <= 114; s++) {
+      int count = quran.getVerseCount(s);
+      for (int v = 1; v <= count; v++) {
+        if (quran.getPageNumber(s, v) == pageNumber) {
+          foundSurah = s;
+          foundVerse = v;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    return getQuarterNumber(foundSurah, foundVerse);
+  }
+
+  void _showQuarterPopup(int quarterNumber) {
+    int hizb = ((quarterNumber - 1) ~/ 4) + 1;
+    int localQuarter = (quarterNumber - 1) % 4 + 1;
+
+    String arabicTitle = '';
+    String englishTitle = '';
+
+    switch (localQuarter) {
+      case 1:
+        arabicTitle = 'بداية الحزب $hizb';
+        englishTitle = 'Beginning of Hizb $hizb';
+        break;
+      case 2:
+        arabicTitle = 'ربع الحزب $hizb';
+        englishTitle = 'First Quarter of Hizb $hizb';
+        break;
+      case 3:
+        arabicTitle = 'نصف الحزب $hizb';
+        englishTitle = 'Half of Hizb $hizb';
+        break;
+      case 4:
+        arabicTitle = 'ثلاثة أرباع الحزب $hizb';
+        englishTitle = 'Three-Quarters of Hizb $hizb';
+        break;
+    }
+
+    Get.closeAllSnackbars();
+
+    Get.rawSnackbar(
+      titleText: Text(
+        arabicTitle,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.amiri(
+          color: AppColors.gold,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      messageText: Text(
+        englishTitle,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      backgroundColor: AppColors.card.withValues(alpha: 0.95),
+      borderRadius: 15,
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      duration: const Duration(seconds: 3),
+      snackPosition: SnackPosition.BOTTOM,
+      animationDuration: const Duration(milliseconds: 400),
+      boxShadows: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.5),
+          blurRadius: 15,
+          offset: const Offset(0, 5),
+        ),
+      ],
+      borderColor: AppColors.gold.withValues(alpha: 0.3),
+      borderWidth: 1,
+    );
+  }
+
+  Widget _buildQuarterDots(int quarterNumber) {
+    int activeDots = (quarterNumber - 1) % 4 + 1;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(4, (index) {
+        bool isActive = index < activeDots;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive
+                ? AppColors.gold
+                : Colors.white.withValues(alpha: 0.2),
+            border: Border.all(
+              color: isActive
+                  ? AppColors.gold
+                  : Colors.white.withValues(alpha: 0.4),
+              width: 1,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  void _toggleBookmark(int pageIndex) {
+    int pageNumber = pageIndex + 1;
     int foundSurah = 1;
     int foundVerse = 1;
     bool found = false;
 
-    // Search for first verse on page
     for (int s = 1; s <= 114; s++) {
       int count = quran.getVerseCount(s);
       for (int v = 1; v <= count; v++) {
@@ -71,134 +239,295 @@ class _ImageQuranViewState extends State<ImageQuranView> {
     }
 
     if (found) {
-      largeQuranController.saveBookmark(foundSurah, foundVerse);
-
-      Get.snackbar(
-        'Bookmark Saved',
-        'Page $pageNumber saved as bookmark',
-        backgroundColor: AppColors.secondary,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 1),
-      );
+      largeQuranController.toggleBookmark(foundSurah, foundVerse);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final int currentSurah = _getSurahForPage(_currentPage);
+    final String surahNameArabic = quran.getSurahNameArabic(currentSurah);
+    final int juz = _getJuzForPage(_currentPage);
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            GestureDetector(
-              onTap: _toggleControls,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: 604,
-                reverse:
-                    true, // Quran is RTL, so swiping right should go to next page (lower number? or higher?)
-                // Usually Arabic books: Right to Left.
-                // Page 1 is on the right. Swipe Right->Left to go to Page 2.
-                // PageView reverse: true means index 0 is at right.
-                // Scanning direction is 1 -> 2.
-                // TextDirection.rtl?
+      body: Stack(
+        children: [
+          // Quran page images taking all screen area
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _showControls = !_showControls;
+              });
+            },
+            behavior: HitTestBehavior.translucent,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: 604,
+              reverse: false,
+              onPageChanged: (pageIndex) {
+                int pageNumber = pageIndex + 1;
+                final newQuarter = _getQuarterForPage(pageNumber);
+                if (newQuarter != _currentQuarter) {
+                  _currentQuarter = newQuarter;
+                  _showQuarterPopup(newQuarter);
+                }
+                setState(() {
+                  _currentPage = pageNumber;
+                });
+                _saveProgressForPage(pageNumber);
+              },
+              itemBuilder: (context, index) {
+                int pageNumber = index + 1;
+                File? imageFile = imageController.getPageImageFile(pageNumber);
 
-                // Let's try simple PageView with reverse: true.
-                // logical index 0 -> Page 1.
-                // In RTL, 0 is rightmost.
-                // Swipe Left (<-) reveals index 1 (Page 2). Correct.
-                itemBuilder: (context, index) {
-                  int pageNumber = index + 1;
-                  File? imageFile = imageController.getPageImageFile(
-                    pageNumber,
+                if (imageFile == null) {
+                  return const Center(
+                    child: Text(
+                      'Image not found',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   );
+                }
 
-                  if (imageFile == null) {
-                    return const Center(
-                      child: Text(
-                        'Image not found',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    );
-                  }
-
-                  return Image.file(imageFile, fit: BoxFit.contain);
-                },
-              ),
+                return SafeArea(
+                  child: SizedBox.expand(
+                    child: Image.file(
+                      imageFile,
+                      fit: BoxFit.fill,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                );
+              },
             ),
+          ),
 
-            // Top Bar
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              top: _showControls ? 0 : -80,
-              left: 0,
-              right: 0,
+          // Top Floating Widget (Header)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: _showControls ? 0 : -120,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
               child: Container(
+                margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 12,
                 ),
-                color: Colors.black54,
+                decoration: BoxDecoration(
+                  color: AppColors.card.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Get.back(),
-                    ),
-                    const Text(
-                      'Quran Images',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
                       icon: const Icon(
-                        Icons.bookmark_border,
-                        color: AppColors.gold,
+                        Icons.arrow_back_ios,
+                        color: Colors.white,
+                        size: 20,
                       ),
-                      onPressed: () {
-                        int currentPage = (_pageController.page?.round() ?? 0);
-                        _saveBookmark(currentPage);
-                      },
+                      onPressed: () => Get.back(),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            quran.getPlaceOfRevelation(currentSurah)=='Madinah' ? 'madinah'.tr : 'makkah'.tr,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Juz $juz',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Get.bottomSheet(
+                          SurahSelectionSheet(
+                            onSurahSelected: (surahNumber) {
+                              int page = quran.getPageNumber(surahNumber, 1);
+                              _pageController.jumpToPage(page - 1);
+                              setState(() {
+                                _currentPage = page;
+                              });
+                              _saveProgressForPage(page);
+                            },
+                          ),
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                        );
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            surahNameArabic,
+                            style: GoogleFonts.amiri(
+                              color: AppColors.gold,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppColors.gold,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Obx(() {
+                      int foundSurah = 1;
+                      int foundVerse = 1;
+                      bool found = false;
+
+                      for (int s = 1; s <= 114; s++) {
+                        int count = quran.getVerseCount(s);
+                        for (int v = 1; v <= count; v++) {
+                          if (quran.getPageNumber(s, v) == _currentPage) {
+                            foundSurah = s;
+                            foundVerse = v;
+                            found = true;
+                            break;
+                          }
+                        }
+                        if (found) break;
+                      }
+
+                      final isBookmarked = largeQuranController.isBookmarked(
+                        foundSurah,
+                        foundVerse,
+                      );
+
+                      return IconButton(
+                        icon: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: AppColors.gold,
+                        ),
+                        onPressed: () {
+                          _toggleBookmark(_currentPage - 1);
+                        },
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                      );
+                    }),
                   ],
                 ),
               ),
             ),
+          ),
 
-            // Bottom Bar (Page Info)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              bottom: _showControls ? 0 : -80,
-              left: 0,
-              right: 0,
+          // Bottom Floating Widget (Footer)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            bottom: _showControls ? 0 : -120,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              top: false,
               child: Container(
-                padding: const EdgeInsets.all(16),
-                color: Colors.black54,
-                child: Center(
-                  child: ListenableBuilder(
-                    listenable: _pageController,
-                    builder: (context, child) {
-                      int p =
-                          (_pageController.hasClients &&
-                              _pageController.position.haveDimensions)
-                          ? (_pageController.page?.round() ?? 0) + 1
-                          : (widget.initialPage ?? 1);
-                      return Text(
-                        'Page $p',
-                        style: const TextStyle(color: Colors.white),
-                      );
-                    },
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.card.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Left Icon
+                    _buildQuarterDots(_getQuarterForPage(_currentPage)),
+
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+
+                    // Center Number
+                    Text(
+                      '$_currentPage',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+
+                    // Book icon indicating even/odd page layout
+                    _currentPage % 2 == 0
+                        ? const Icon(
+                            Icons.menu_book_rounded,
+                            color: AppColors.gold,
+                            size: 28,
+                          )
+                        : Transform.flip(
+                            flipX: true,
+                            child: const Icon(
+                              Icons.menu_book_rounded,
+                              color: AppColors.gold,
+                              size: 28,
+                            ),
+                          ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
