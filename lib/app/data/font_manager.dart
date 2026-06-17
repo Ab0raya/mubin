@@ -5,6 +5,7 @@ import '../../utils/startup_profiler.dart';
 class FontManager {
   static bool _loaded = false;
   static Future<void>? _loadingFuture;
+  static final ValueNotifier<double> loadingProgress = ValueNotifier<double>(0.0);
 
   static bool get isLoaded => _loaded;
 
@@ -20,9 +21,13 @@ class FontManager {
       debugPrint("FontManager: Starting QCF fonts setup...");
       final stopwatch = Stopwatch()..start();
       
+      loadingProgress.value = 0.0;
       await QcfFontLoader.setupFontsAtStartup(
-        onProgress: (_) {},
+        onProgress: (progress) {
+          loadingProgress.value = progress;
+        },
       );
+      loadingProgress.value = 1.0;
       
       stopwatch.stop();
       _loaded = true;
@@ -32,6 +37,7 @@ class FontManager {
       debugPrint("FontManager: Error loading fonts: $e");
       _loaded = false;
       _loadingFuture = null; // Allow retry on failure
+      loadingProgress.value = 0.0;
     }
   }
 }

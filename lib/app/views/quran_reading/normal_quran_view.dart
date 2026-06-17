@@ -247,11 +247,7 @@ class _NormalQuranViewState extends State<NormalQuranView> {
         backgroundColor: Color(_settingsController.readingBgColor.value),
         body: SafeArea(
           child: _isLoadingFonts
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.gold,
-                  ),
-                )
+              ? _buildLoadingScreen(context)
               : Stack(
                   children: [
                     // Quran page reader with tap gesture detector
@@ -467,6 +463,210 @@ class _NormalQuranViewState extends State<NormalQuranView> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingScreen(BuildContext context) {
+    final isDark = _settingsController.isDarkMode.value;
+    final bgColor = isDark ? AppColors.background : const Color(0xFFF9F6F0);
+    final cardColor = isDark ? AppColors.card : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1B4D3E);
+    final subTextColor = isDark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF556B2F);
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.05);
+    final borderCol = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
+    final gradientColors = isDark 
+        ? [AppColors.primary, AppColors.gold]
+        : [const Color(0xFF2E7D32), AppColors.gold];
+
+    return Container(
+      color: bgColor,
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const _PulsingIcon(),
+              const SizedBox(height: 40),
+              
+              Text(
+                'MUBIN',
+                style: GoogleFonts.outfit(
+                  color: AppColors.gold,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  shadows: [
+                    Shadow(
+                      color: shadowColor,
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Preparing Mushaf Pages...',
+                style: GoogleFonts.outfit(
+                  color: subTextColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 48),
+
+              // Progress Card with glassmorphism style
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardColor.withValues(alpha: isDark ? 0.7 : 0.9),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: borderCol,
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor,
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ValueListenableBuilder<double>(
+                  valueListenable: FontManager.loadingProgress,
+                  builder: (context, progress, child) {
+                    final percentage = (progress * 100).toStringAsFixed(0);
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Loading Fonts',
+                              style: GoogleFonts.outfit(
+                                color: textColor.withValues(alpha: 0.9),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '$percentage%',
+                              style: GoogleFonts.outfit(
+                                color: AppColors.gold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Custom Linear Progress Bar
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            height: 8,
+                            width: double.infinity,
+                            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: FractionallySizedBox(
+                                widthFactor: progress.clamp(0.0, 1.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: gradientColors,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Optimizing font files for smooth rendering',
+                          style: GoogleFonts.outfit(
+                            color: subTextColor.withValues(alpha: 0.8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w300,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PulsingIcon extends StatefulWidget {
+  const _PulsingIcon();
+
+  @override
+  State<_PulsingIcon> createState() => _PulsingIconState();
+}
+
+class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.92, end: 1.08).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.gold.withValues(alpha: 0.15),
+              blurRadius: 30,
+              spreadRadius: 5,
+            ),
+          ],
+          border: Border.all(
+            color: AppColors.gold.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+        ),
+        child: const Icon(
+          Icons.menu_book_rounded,
+          color: AppColors.gold,
+          size: 72,
         ),
       ),
     );
