@@ -15,7 +15,6 @@ import '../views/quran_reading/normal_quran_view.dart';
 import '../views/quran_reading/large_quran_view.dart';
 import '../views/quran_reading/tafseer_view.dart';
 import '../views/quran_reading/bookmarks_view.dart';
-import '../views/quran_reading/image_quran_view.dart';
 import '../views/quran_reading/image_surah_list_view.dart';
 import '../views/praying_tracker/prayer_report_view.dart';
 import '../views/auth/login_view.dart';
@@ -28,8 +27,11 @@ import '../controllers/profile_controller.dart';
 import '../views/settings/settings_view.dart';
 import '../controllers/settings_controller.dart';
 import '../views/quran_audio/quran_audio_view.dart';
+import '../modules/splash/splash_screen.dart';
+import '../modules/splash/splash_binding.dart';
 
 class AppRoutes {
+  static const splash = '/splash';
   static const home = '/home'; // Now mapped to DashboardView
   static const counter = '/counter';
   static const qibla = '/qibla';
@@ -50,6 +52,11 @@ class AppRoutes {
 
 class AppPages {
   static final routes = [
+    GetPage(
+      name: AppRoutes.splash,
+      page: () => const SplashScreen(),
+      binding: SplashBinding(),
+    ),
     GetPage(
       name: AppRoutes.home,
       page: () => const DashboardView(),

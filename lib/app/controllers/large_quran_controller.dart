@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -321,32 +322,33 @@ class LargeQuranController extends GetxController {
     isSearching.value = true;
     searchResults.clear();
 
-    List<QuranSearchResult> results = [];
-
-    // Run search in a future to avoid blocking UI immediately
-    await Future.delayed(Duration.zero);
+    final searchFn = searchWordsProvider;
 
     try {
       final normalizedQuery = normalise(query);
       if (normalizedQuery.isNotEmpty) {
-        final searchMap = searchWordsProvider(normalizedQuery);
-        final List? matchesList = searchMap['result'];
-        if (matchesList != null) {
-          for (var match in matchesList) {
-            final int surah = match['sora'];
-            final int ayah = match['aya_no'];
-            final String text = match['text'];
-            results.add(
-              QuranSearchResult(surah: surah, verse: ayah, text: text),
-            );
+        final List<QuranSearchResult> results = await Isolate.run(() {
+          final searchMap = searchFn(normalizedQuery);
+          final List? matchesList = searchMap['result'];
+          final List<QuranSearchResult> tempResults = [];
+          if (matchesList != null) {
+            for (var match in matchesList) {
+              final int surah = match['sora'];
+              final int ayah = match['aya_no'];
+              final String text = match['text'];
+              tempResults.add(
+                QuranSearchResult(surah: surah, verse: ayah, text: text),
+              );
+            }
           }
-        }
+          return tempResults;
+        });
+        searchResults.assignAll(results);
       }
     } catch (e) {
       print('Error in qcf search: $e');
     }
 
-    searchResults.assignAll(results);
     isSearching.value = false;
   }
 

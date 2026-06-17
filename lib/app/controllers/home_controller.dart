@@ -268,6 +268,16 @@ class HomeController extends GetxController {
       return;
     }
 
+    final String todayStr = "${now.year}-${now.month}-${now.day}";
+    final String? lastScheduledDate = box.read('last_notification_schedule_date');
+    if (lastScheduledDate == todayStr) {
+      debugPrint("Notifications already scheduled for today ($todayStr). Skipping rescheduling.");
+      return;
+    }
+
+    // Cancel all schedules first to ensure a clean slate
+    await AwesomeNotifications().cancelAllSchedules();
+
     // IDs: Fajr=1, Dhuhr=2, Asr=3, Maghrib=4, Isha=5
     Map<String, int> ids = {
       'Fajr': 1,
@@ -298,6 +308,9 @@ class HomeController extends GetxController {
         }
       }
     }
+
+    // Save scheduled date to prevent redundant scheduling today
+    await box.write('last_notification_schedule_date', todayStr);
   }
 
   void updateCountdown() {

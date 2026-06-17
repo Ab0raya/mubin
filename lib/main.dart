@@ -4,26 +4,20 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:just_audio_background/just_audio_background.dart'; // Import this
-import 'package:qcf_quran_plus/qcf_quran_plus.dart';
 import 'app/translations/app_translations.dart';
 import 'app/routes/app_routes.dart';
-import 'app/services/api_service.dart';
-import 'app/services/tafseer_service.dart';
 import 'utils/colors.dart';
 import 'utils/constants.dart';
-import 'app/controllers/settings_controller.dart';
+import 'utils/startup_profiler.dart';
+import 'app/bindings/initial_binding.dart';
 
 void main() async {
+  StartupProfiler.start();
   WidgetsFlutterBinding.ensureInitialized();
-  //tesr git 
-  await GetStorage.init();
+  StartupProfiler.log("Flutter Binding");
 
-  // Initialize QCF Fonts at startup
-  await QcfFontLoader.setupFontsAtStartup(
-    onProgress: (double progress) {
-      debugPrint('Font Loading Progress: ${(progress * 100).toStringAsFixed(1)}%');
-    },
-  );
+  await GetStorage.init();
+  StartupProfiler.log("GetStorage");
 
   // Initialize JustAudioBackground
   await JustAudioBackground.init(
@@ -31,6 +25,7 @@ void main() async {
     androidNotificationChannelName: 'Audio playback',
     androidNotificationOngoing: true,
   );
+  StartupProfiler.log("Audio Background");
 
   AwesomeNotifications().initialize(
     null, // icon: null means use the default app icon
@@ -68,8 +63,9 @@ void main() async {
         channelGroupName: 'Basic group',
       ),
     ],
-    debug: true,
+    debug: false,
   );
+  StartupProfiler.log("Notifications");
 
   runApp(const MyApp());
 }
@@ -85,10 +81,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Initialize Services
-    Get.put(ApiService());
-    Get.put(SettingsController());
-    Get.putAsync(() => TafseerService().init());
 
     AwesomeNotifications().setListeners(
       onActionReceivedMethod: NotificationController.onActionReceivedMethod,
@@ -120,21 +112,10 @@ class _MyAppState extends State<MyApp> {
       translations: AppTranslations(),
       locale: _getSavedLocale(),
       fallbackLocale: const Locale('en', 'US'),
-      initialRoute: _getInitialRoute(),
+      initialRoute: AppRoutes.splash,
+      initialBinding: InitialBinding(),
       getPages: AppPages.routes,
     );
-  }
-
-  String _getInitialRoute() {
-    final box = GetStorage();
-    bool isOnboardingComplete =
-        box.read(Constants.keyOnboardingComplete) == true;
-
-    if (!isOnboardingComplete) {
-      return AppRoutes.onboarding;
-    } else {
-      return AppRoutes.home;
-    }
   }
 
   Locale _getSavedLocale() {

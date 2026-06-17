@@ -8,6 +8,7 @@ import '../../controllers/large_quran_controller.dart';
 import 'widgets/verse_action_sheet.dart';
 import 'widgets/surah_selection_sheet.dart';
 import '../../controllers/settings_controller.dart';
+import '../../data/font_manager.dart';
 
 class NormalQuranView extends StatefulWidget {
   final int? initialPage;
@@ -24,6 +25,7 @@ class _NormalQuranViewState extends State<NormalQuranView> {
   int _currentPage = 1;
   bool _showControls = false;
   int _currentQuarter = 1;
+  bool _isLoadingFonts = true;
 
   @override
   void initState() {
@@ -37,10 +39,24 @@ class _NormalQuranViewState extends State<NormalQuranView> {
     final startPage = _currentPage - 1;
     _pageController = PageController(initialPage: startPage);
 
+    _isLoadingFonts = !FontManager.isLoaded;
+    if (_isLoadingFonts) {
+      _loadFonts();
+    }
+
     // Save last read position for the initial page at startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _saveProgressForPage(_currentPage);
     });
+  }
+
+  Future<void> _loadFonts() async {
+    await FontManager.ensureLoaded();
+    if (mounted) {
+      setState(() {
+        _isLoadingFonts = false;
+      });
+    }
   }
 
   @override
@@ -230,15 +246,21 @@ class _NormalQuranViewState extends State<NormalQuranView> {
       () => Scaffold(
         backgroundColor: Color(_settingsController.readingBgColor.value),
         body: SafeArea(
-          child: Stack(
-            children: [
-              // Quran page reader with tap gesture detector
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showControls = !_showControls;
-                  });
-                },
+          child: _isLoadingFonts
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.gold,
+                  ),
+                )
+              : Stack(
+                  children: [
+                    // Quran page reader with tap gesture detector
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showControls = !_showControls;
+                        });
+                      },
                 behavior: HitTestBehavior.translucent,
                 child: QuranPageView(
                   highlights: [],

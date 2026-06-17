@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -38,10 +39,13 @@ class AzkarController extends GetxController {
       final String response = await rootBundle.loadString(
         'assets/data/adhkar.json',
       );
-      final Map<String, dynamic> data = json.decode(response);
-      categories.value = data.entries
-          .map((entry) => AdhkarCategory.fromMap(entry.key, entry.value))
-          .toList();
+      final List<AdhkarCategory> loadedCategories = await Isolate.run(() {
+        final Map<String, dynamic> data = json.decode(response);
+        return data.entries
+            .map((entry) => AdhkarCategory.fromMap(entry.key, entry.value))
+            .toList();
+      });
+      categories.value = loadedCategories;
     } catch (e) {
       print("Error loading adhkar: $e");
       Get.snackbar('Error', 'Failed to load Azkar data');

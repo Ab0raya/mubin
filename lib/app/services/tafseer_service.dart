@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../data/models/tafseer_model.dart';
@@ -16,11 +17,12 @@ class TafseerService extends GetxService {
       final String jsonString = await rootBundle.loadString(
         'assets/data/tafseer.json',
       );
-      final List<dynamic> jsonList = json.decode(jsonString);
+      final List<TafseerModel> parsedList = await Isolate.run(() {
+        final List<dynamic> jsonList = json.decode(jsonString);
+        return jsonList.map((json) => TafseerModel.fromJson(json)).toList();
+      });
       _tafseerList.clear();
-      _tafseerList.addAll(
-        jsonList.map((json) => TafseerModel.fromJson(json)).toList(),
-      );
+      _tafseerList.addAll(parsedList);
     } catch (e) {
       print('Error loading tafseer data: $e');
     }

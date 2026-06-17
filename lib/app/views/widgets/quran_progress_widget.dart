@@ -9,6 +9,7 @@ import '../../controllers/quran_image_controller.dart';
 import '../quran_reading/normal_quran_view.dart';
 import '../quran_reading/image_quran_view.dart';
 import '../quran_reading/surah_detail_view.dart';
+import '../../routes/app_routes.dart';
 
 class QuranProgressWidget extends StatelessWidget {
   const QuranProgressWidget({super.key});
@@ -19,28 +20,23 @@ class QuranProgressWidget extends StatelessWidget {
     final controller = Get.put(LargeQuranController());
 
     return Obx(() {
-      int lastReadPage = controller.lastReadPage.value;
-      int lastReadSurah = controller.lastReadSurah.value;
-      int lastReadVerse = controller.lastReadVerse.value;
+      int pageToUse = 1;
+      int surahToUse = 1;
+      int verseToUse = 1;
+      bool hasBookmark = controller.lastBookmark.value != null;
 
-      bool isFromBookmark = false;
-
-      // Fallback to bookmark if lastReadPage is 1 (default) but bookmark is set
-      if (lastReadPage == 1 && controller.lastBookmark.value != null) {
+      if (hasBookmark) {
         final parts = controller.lastBookmark.value!.split(':');
         if (parts.length == 2) {
-          final s = int.tryParse(parts[0]) ?? 1;
-          final v = int.tryParse(parts[1]) ?? 1;
-          lastReadPage = quran.getPageNumber(s, v);
-          lastReadSurah = s;
-          lastReadVerse = v;
-          isFromBookmark = true;
+          surahToUse = int.tryParse(parts[0]) ?? 1;
+          verseToUse = int.tryParse(parts[1]) ?? 1;
+          pageToUse = quran.getPageNumber(surahToUse, verseToUse);
         }
       }
 
-      final surahNameEnglish = controller.getSurahNameEnglish(lastReadSurah);
-      final surahNameArabic = controller.getSurahName(lastReadSurah);
-      final progress = lastReadPage / 604.0;
+      final surahNameEnglish = controller.getSurahNameEnglish(surahToUse);
+      final surahNameArabic = controller.getSurahName(surahToUse);
+      final progress = pageToUse / 604.0;
       final percentage = (progress * 100).toStringAsFixed(0);
 
       final isArabic = Get.locale?.languageCode == 'ar';
@@ -62,6 +58,11 @@ class QuranProgressWidget extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
+              if (!hasBookmark) {
+                Get.toNamed(AppRoutes.quranBookmarks);
+                return;
+              }
+
               final settingsController = Get.put(SettingsController());
               final imageController = Get.put(QuranImageController());
               final largeQuranController = Get.find<LargeQuranController>();
@@ -69,20 +70,20 @@ class QuranProgressWidget extends StatelessWidget {
 
               if (favMode == 'image') {
                 if (imageController.isDownloaded.value) {
-                  Get.to(() => ImageQuranView(initialPage: lastReadPage));
+                  Get.to(() => ImageQuranView(initialPage: pageToUse));
                 } else {
                   imageController.showDownloadDialog(onSuccess: () {
-                    Get.to(() => ImageQuranView(initialPage: lastReadPage));
+                    Get.to(() => ImageQuranView(initialPage: pageToUse));
                   });
                 }
               } else if (favMode == 'large') {
-                largeQuranController.currentSurahNumber.value = lastReadSurah;
+                largeQuranController.currentSurahNumber.value = surahToUse;
                 Get.to(() => SurahDetailView(
-                      surahNumber: lastReadSurah,
-                      initialVerse: lastReadVerse,
+                      surahNumber: surahToUse,
+                      initialVerse: verseToUse,
                     ));
               } else {
-                Get.to(() => NormalQuranView(initialPage: lastReadPage));
+                Get.to(() => NormalQuranView(initialPage: pageToUse));
               }
             },
             borderRadius: BorderRadius.circular(20),
@@ -117,9 +118,9 @@ class QuranProgressWidget extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isFromBookmark
+                                hasBookmark
                                     ? 'mode_bookmarks'.tr.toUpperCase()
-                                    : 'last_read'.tr.toUpperCase(),
+                                    : 'quran_reading'.tr.toUpperCase(),
                                 style: const TextStyle(
                                   color: AppColors.gold,
                                   fontSize: 10,
@@ -129,7 +130,7 @@ class QuranProgressWidget extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'resume_reading'.tr,
+                                hasBookmark ? 'resume_reading'.tr : 'get_started'.tr,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.5),
                                   fontSize: 11,
@@ -152,7 +153,7 @@ class QuranProgressWidget extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            surahNameEnglish,
+                            hasBookmark ? surahNameEnglish : 'Al-Fatiha',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -161,9 +162,13 @@ class QuranProgressWidget extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isArabic
-                                ? 'الصفحة $lastReadPage من ٦٠٤ • آية $lastReadVerse'
-                                : 'Page $lastReadPage of 604 • Verse $lastReadVerse',
+                            hasBookmark
+                                ? (isArabic
+                                    ? 'الصفحة $pageToUse من ٦٠٤ • آية $verseToUse'
+                                    : 'Page $pageToUse of 604 • Verse $verseToUse')
+                                : (isArabic
+                                    ? 'لا توجد فواصل محفوظة'
+                                    : 'No bookmarks saved'),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 12,
@@ -172,7 +177,7 @@ class QuranProgressWidget extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        surahNameArabic,
+                        hasBookmark ? surahNameArabic : 'الفاتحة',
                         style: GoogleFonts.amiri(
                           color: AppColors.gold,
                           fontSize: 22,
