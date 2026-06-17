@@ -208,7 +208,7 @@ class _QuranAudioViewState extends State<QuranAudioView>
                         ),
                         IconButton(
                           icon: const Icon(
-                            Icons.playlist_play_rounded,
+                            Icons.record_voice_over,
                             color: Colors.white,
                             size: 28,
                           ),
@@ -459,9 +459,11 @@ class _QuranAudioViewState extends State<QuranAudioView>
                                       ),
                                     ),
                                     Obx(() {
-                                      final downloadedCount = controller.downloadedSurahs.length;
-                                      final isDownloading = controller.isDownloadingAll.value;
-                                      
+                                      final downloadedCount =
+                                          controller.downloadedSurahs.length;
+                                      final isDownloading =
+                                          controller.isDownloadingAll.value;
+
                                       if (downloadedCount == 114) {
                                         return Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -475,7 +477,8 @@ class _QuranAudioViewState extends State<QuranAudioView>
                                             Text(
                                               'all_downloaded'.tr,
                                               style: TextStyle(
-                                                color: AppColors.secondary.withOpacity(0.9),
+                                                color: AppColors.secondary
+                                                    .withOpacity(0.9),
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -500,7 +503,8 @@ class _QuranAudioViewState extends State<QuranAudioView>
                                                   ? "${'downloading_progress'.tr} ($downloadedCount/١١٤)"
                                                   : "${'downloading_progress'.tr} ($downloadedCount/114)",
                                               style: TextStyle(
-                                                color: AppColors.secondary.withOpacity(0.9),
+                                                color: AppColors.secondary
+                                                    .withOpacity(0.9),
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -508,7 +512,10 @@ class _QuranAudioViewState extends State<QuranAudioView>
                                             const SizedBox(width: 6),
                                             GestureDetector(
                                               onTap: () {
-                                                controller.isDownloadingAll.value = false;
+                                                controller
+                                                        .isDownloadingAll
+                                                        .value =
+                                                    false;
                                               },
                                               child: const Icon(
                                                 Icons.stop_circle_rounded,
@@ -523,9 +530,11 @@ class _QuranAudioViewState extends State<QuranAudioView>
                                           style: TextButton.styleFrom(
                                             padding: EdgeInsets.zero,
                                             minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
                                           ),
-                                          onPressed: () => controller.downloadAllSurahs(),
+                                          onPressed: () =>
+                                              controller.downloadAllSurahs(),
                                           icon: const Icon(
                                             Icons.download_for_offline_rounded,
                                             color: AppColors.secondary,
@@ -534,7 +543,8 @@ class _QuranAudioViewState extends State<QuranAudioView>
                                           label: Text(
                                             'download_all'.tr,
                                             style: TextStyle(
-                                              color: AppColors.secondary.withOpacity(0.9),
+                                              color: AppColors.secondary
+                                                  .withOpacity(0.9),
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                             ),
