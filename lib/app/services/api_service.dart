@@ -31,4 +31,32 @@ class ApiService {
       queryParameters: {'latitude': lat, 'longitude': lng, 'method': method},
     );
   }
+
+  Future<Response> getCalendar(
+    String year,
+    String month, {
+    double? latitude,
+    double? longitude,
+    int? method,
+  }) async {
+    if (latitude != null && longitude != null) {
+      return await _dio.get(
+        '${Constants.apiUrl}/calendar/$year/$month',
+        queryParameters: {
+          'latitude': latitude,
+          'longitude': longitude,
+          'method': method ?? Constants.method,
+        },
+      );
+    } else {
+      return await _dio.get(
+        '${Constants.apiUrl}/calendarByCity/$year/$month',
+        queryParameters: {
+          'city': Constants.city,
+          'country': Constants.country,
+          'method': method ?? Constants.method,
+        },
+      );
+    }
+  }
 }

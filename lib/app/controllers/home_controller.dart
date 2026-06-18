@@ -10,6 +10,7 @@ import '../services/api_service.dart';
 
 import 'dart:math';
 import '../data/models/quran_data.dart';
+import '../../utils/constants.dart';
 
 class HomeController extends GetxController {
   var currentTime = DateTime.now().obs;
@@ -74,6 +75,53 @@ class HomeController extends GetxController {
     verseOfTheDay.value = quranMap.values.elementAt(randomIndex);
   }
 
+  Map<String, dynamic>? _getTimingsFromCalendarCache(String dateStr, DateTime targetDate) {
+    String monthCacheKey =
+        'calendar_${targetDate.year}_${targetDate.month.toString().padLeft(2, '0')}';
+    if (box.hasData(monthCacheKey)) {
+      var cachedMonth = box.read(monthCacheKey);
+      if (cachedMonth is List) {
+        for (var dayData in cachedMonth) {
+          if (dayData is Map && dayData['date']?['gregorian']?['date'] == dateStr) {
+            return Map<String, dynamic>.from(dayData);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<void> _fetchAndCacheMonthCalendar(DateTime date) async {
+    try {
+      double? lat = box.read<num>(Constants.keyLatitude)?.toDouble();
+      double? lng = box.read<num>(Constants.keyLongitude)?.toDouble();
+      int method = box.read<num>(Constants.keyCalculationMethod)?.toInt() ?? Constants.method;
+
+      String monthStr = date.month.toString().padLeft(2, '0');
+      String yearStr = date.year.toString();
+      String monthCacheKey = 'calendar_${yearStr}_$monthStr';
+
+      debugPrint("Background fetching calendar for $yearStr-$monthStr");
+      final response = await _apiService.getCalendar(
+        yearStr,
+        monthStr,
+        latitude: lat,
+        longitude: lng,
+        method: method,
+      );
+
+      if (response.statusCode == 200) {
+        var dataList = response.data['data'];
+        if (dataList is List) {
+          box.write(monthCacheKey, dataList);
+          debugPrint("Cached calendar for $yearStr-$monthStr successfully.");
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to background fetch calendar: $e");
+    }
+  }
+
   Future<void> fetchPrayerTimes() async {
     isLoading.value = true;
     errorMessage.value = '';
@@ -81,48 +129,81 @@ class HomeController extends GetxController {
     DateTime now = DateTime.now();
     String formattedDate =
         "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
-    String cacheKey = 'prayers_$formattedDate';
 
-    // 1. Try to load from cache first for instant UI
-    if (box.hasData(cacheKey)) {
+    // 1. Try to load from calendar cache first for instant UI
+    Map<String, dynamic>? cachedDay = _getTimingsFromCalendarCache(formattedDate, now);
+    if (cachedDay != null) {
       try {
-        debugPrint("Loading from cache: $cacheKey");
-        var cachedData = box.read(cacheKey);
-        if (cachedData != null) {
-          PrayerTimingsModel timings = PrayerTimingsModel.fromJson(
-            Map<String, dynamic>.from(cachedData),
-          );
-          processPrayerTimes(timings, now);
-          isLoading.value = false; // Show cached data immediately
-        }
+        debugPrint("Loading from calendar cache: $formattedDate");
+        PrayerTimingsModel timings = PrayerTimingsModel.fromJson({'data': cachedDay});
+        processPrayerTimes(timings, now);
+        isLoading.value = false; // Show cached data immediately
       } catch (e) {
-        debugPrint("Cache error: $e");
+        debugPrint("Calendar cache parse error: $e");
       }
     }
 
+    // 2. Fetch fresh calendar data from API if online
     try {
-      debugPrint("Fetching prayer times for $formattedDate");
-      // 2. Fetch fresh data from API
-      final response = await _apiService.getPrayerTimes(formattedDate);
+      double? lat = box.read<num>(Constants.keyLatitude)?.toDouble();
+      double? lng = box.read<num>(Constants.keyLongitude)?.toDouble();
+      int method = box.read<num>(Constants.keyCalculationMethod)?.toInt() ?? Constants.method;
+
+      String monthStr = now.month.toString().padLeft(2, '0');
+      String yearStr = now.year.toString();
+      String monthCacheKey = 'calendar_${yearStr}_$monthStr';
+
+      debugPrint("Fetching monthly calendar for $yearStr-$monthStr (Lat: $lat, Lng: $lng)");
+      final response = await _apiService.getCalendar(
+        yearStr,
+        monthStr,
+        latitude: lat,
+        longitude: lng,
+        method: method,
+      );
       debugPrint("API Response Status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
-        debugPrint("API Success: ${response.data}");
-        // Save to cache
-        box.write(cacheKey, response.data);
+        var dataList = response.data['data'];
+        if (dataList is List) {
+          box.write(monthCacheKey, dataList);
 
-        PrayerTimingsModel timings = PrayerTimingsModel.fromJson(response.data);
-        processPrayerTimes(timings, now);
+          // Find today's timing
+          Map<String, dynamic>? todayData;
+          for (var item in dataList) {
+            if (item['date']?['gregorian']?['date'] == formattedDate) {
+              todayData = Map<String, dynamic>.from(item);
+              break;
+            }
+          }
+
+          if (todayData != null) {
+            PrayerTimingsModel timings = PrayerTimingsModel.fromJson({'data': todayData});
+            processPrayerTimes(timings, now);
+          } else {
+            if (cachedDay == null) {
+              errorMessage.value = 'Failed to find today\'s prayer times in calendar';
+            }
+          }
+        }
       } else {
         debugPrint("API Failed with status ${response.statusCode}");
-        if (!box.hasData(cacheKey)) {
+        if (cachedDay == null) {
           errorMessage.value = 'Failed to load prayer times';
         }
       }
+
+      // 3. Background fetch next month's calendar if near the end of the month
+      DateTime endOfMonth = DateTime(now.year, now.month + 1, 0);
+      if (endOfMonth.day - now.day < 7) {
+        DateTime nextMonthDate = now.add(const Duration(days: 7));
+        _fetchAndCacheMonthCalendar(nextMonthDate);
+      }
+
     } catch (e, stackTrace) {
       debugPrint("API Error: $e");
       debugPrint("Stack Trace: $stackTrace");
-      if (!box.hasData(cacheKey)) {
+      if (cachedDay == null) {
         errorMessage.value =
             'No internet connection and no cached data for today.';
       }
@@ -177,8 +258,8 @@ class HomeController extends GetxController {
 
     updateCountdown();
 
-    // Schedule Notifications for Future Prayers Today
-    schedulePrayerNotifications(times, now);
+    // Schedule Notifications for the week
+    schedulePrayerNotifications(now);
 
     var newPrayers = <Map<String, dynamic>>[];
     int doneCounter = 0;
@@ -258,10 +339,7 @@ class HomeController extends GetxController {
     hijriDateString.value = _today.toFormat("DD, dd MMMM");
   }
 
-  void schedulePrayerNotifications(
-    Map<String, DateTime> times,
-    DateTime now,
-  ) async {
+  void schedulePrayerNotifications(DateTime now) async {
     bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
       debugPrint("Notifications not allowed. Skipping scheduling.");
@@ -279,7 +357,9 @@ class HomeController extends GetxController {
     await AwesomeNotifications().cancelAllSchedules();
 
     // IDs: Fajr=1, Dhuhr=2, Asr=3, Maghrib=4, Isha=5
-    Map<String, int> ids = {
+    // To prevent ID collisions across days, we can assign unique IDs.
+    // E.g., for day `d` (0 to 6) and prayer index `p` (1 to 5), ID = d * 10 + p.
+    Map<String, int> baseIds = {
       'Fajr': 1,
       'Dhuhr': 2,
       'Asr': 3,
@@ -287,27 +367,68 @@ class HomeController extends GetxController {
       'Isha': 5,
     };
 
-    for (var entry in times.entries) {
-      if (entry.value.isAfter(now)) {
+    int scheduledCount = 0;
+
+    for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+      DateTime targetDate = now.add(Duration(days: dayOffset));
+      String targetDateStr =
+          "${targetDate.day.toString().padLeft(2, '0')}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.year}";
+
+      Map<String, dynamic>? dayData = _getTimingsFromCalendarCache(targetDateStr, targetDate);
+
+      if (dayData == null) {
+        continue;
+      }
+
+      // Parse timings
+      Map<String, String> timingsMap = Map<String, String>.from(dayData['timings'] ?? {});
+
+      // Helper to parse "HH:MM" for the specific targetDate day
+      DateTime parseTime(String timeStr) {
         try {
-          await AwesomeNotifications().createNotification(
-            content: NotificationContent(
-              id: ids[entry.key] ?? 100,
-              channelKey: 'prayer_channel',
-              title: '${entry.key} Prayer',
-              body: 'It is time for ${entry.key} prayer.',
-              notificationLayout: NotificationLayout.Default,
-              wakeUpScreen: true,
-              category: NotificationCategory.Reminder,
-            ),
-            schedule: NotificationCalendar.fromDate(date: entry.value),
-          );
-          debugPrint("Scheduled ${entry.key} at ${entry.value}");
+          final parts = timeStr.split(' ')[0].split(':');
+          int h = int.parse(parts[0]);
+          int m = int.parse(parts[1]);
+          return DateTime(targetDate.year, targetDate.month, targetDate.day, h, m);
         } catch (e) {
-          debugPrint("Failed to schedule notification: $e");
+          return targetDate;
+        }
+      }
+
+      Map<String, DateTime> times = {
+        'Fajr': parseTime(timingsMap['Fajr'] ?? ''),
+        'Dhuhr': parseTime(timingsMap['Dhuhr'] ?? ''),
+        'Asr': parseTime(timingsMap['Asr'] ?? ''),
+        'Maghrib': parseTime(timingsMap['Maghrib'] ?? ''),
+        'Isha': parseTime(timingsMap['Isha'] ?? ''),
+      };
+
+      for (var entry in times.entries) {
+        if (entry.value.isAfter(now)) {
+          int id = dayOffset * 10 + (baseIds[entry.key] ?? 100);
+          try {
+            await AwesomeNotifications().createNotification(
+              content: NotificationContent(
+                id: id,
+                channelKey: 'prayer_channel',
+                title: '${entry.key} Prayer',
+                body: 'It is time for ${entry.key} prayer.',
+                notificationLayout: NotificationLayout.Default,
+                wakeUpScreen: true,
+                category: NotificationCategory.Reminder,
+              ),
+              schedule: NotificationCalendar.fromDate(date: entry.value),
+            );
+            scheduledCount++;
+            debugPrint("Scheduled ${entry.key} at ${entry.value} with ID $id");
+          } catch (e) {
+            debugPrint("Failed to schedule notification: $e");
+          }
         }
       }
     }
+
+    debugPrint("Scheduled a total of $scheduledCount notifications for the week.");
 
     // Save scheduled date to prevent redundant scheduling today
     await box.write('last_notification_schedule_date', todayStr);

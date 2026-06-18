@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class SettingsController extends GetxController {
   final box = GetStorage();
@@ -81,5 +82,56 @@ class SettingsController extends GetxController {
     var locale = Locale(value, value == 'ar' ? 'SA' : 'US');
     Get.updateLocale(locale);
     box.write('language', value);
+  }
+
+  void triggerTestAzan() async {
+    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      isAllowed = await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+    if (!isAllowed) {
+      Get.snackbar(
+        'permission'.tr,
+        'notification_permission'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    try {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: 999, // Unique test ID
+          channelKey: 'prayer_channel',
+          title: 'Test Azan Alarm',
+          body: 'This is a test of the offline Azan notification.',
+          notificationLayout: NotificationLayout.Default,
+          wakeUpScreen: true,
+          category: NotificationCategory.Alarm,
+          criticalAlert: true,
+        ),
+        schedule: NotificationCalendar.fromDate(
+          date: DateTime.now().add(const Duration(seconds: 5)),
+        ),
+      );
+      Get.snackbar(
+        'test_azan_alarm'.tr,
+        'test_alarm_scheduled'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF0F251D),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'error'.tr,
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    }
   }
 }

@@ -109,6 +109,12 @@ class SettingsView extends GetView<SettingsController> {
                 'minutes_before'.tr,
                 Icons.alarm,
               ),
+              _buildTile(
+                'test_azan_alarm'.tr,
+                'test_azan_alarm_desc'.tr,
+                Icons.volume_up,
+                onTap: () => controller.triggerTestAzan(),
+              ),
             ]),
 
             const SizedBox(height: 24),
