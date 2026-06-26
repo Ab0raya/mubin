@@ -15,4 +15,5 @@ class Constants {
   static const String keyLongitude = 'longitude';
   static const String keyCityName = 'city_name';
   static const String keyIsLoggedIn = 'is_logged_in';
+  static const String keyAzanType = 'azan_type';
 }

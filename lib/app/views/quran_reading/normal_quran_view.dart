@@ -12,7 +12,14 @@ import '../../data/font_manager.dart';
 
 class NormalQuranView extends StatefulWidget {
   final int? initialPage;
-  const NormalQuranView({super.key, this.initialPage});
+  final int? initialSurah;
+  final int? initialVerse;
+  const NormalQuranView({
+    super.key,
+    this.initialPage,
+    this.initialSurah,
+    this.initialVerse,
+  });
 
   @override
   State<NormalQuranView> createState() => _NormalQuranViewState();
@@ -26,6 +33,7 @@ class _NormalQuranViewState extends State<NormalQuranView> {
   bool _showControls = false;
   int _currentQuarter = 1;
   bool _isLoadingFonts = true;
+  List<HighlightVerse> _highlights = [];
 
   @override
   void initState() {
@@ -34,6 +42,17 @@ class _NormalQuranViewState extends State<NormalQuranView> {
     _settingsController = Get.find<SettingsController>();
     _currentPage = widget.initialPage ?? 1;
     _currentQuarter = _getQuarterForPage(_currentPage);
+
+    if (widget.initialSurah != null && widget.initialVerse != null) {
+      _highlights = [
+        HighlightVerse(
+          surah: widget.initialSurah!,
+          verseNumber: widget.initialVerse!,
+          page: widget.initialPage ?? quran.getPageNumber(widget.initialSurah!, widget.initialVerse!),
+          color: AppColors.gold.withValues(alpha: 0.35),
+        )
+      ];
+    }
 
     // Page index is 0-indexed in PageController
     final startPage = _currentPage - 1;
@@ -259,7 +278,7 @@ class _NormalQuranViewState extends State<NormalQuranView> {
                       },
                 behavior: HitTestBehavior.translucent,
                 child: QuranPageView(
-                  highlights: [],
+                  highlights: _highlights,
                   pageController: _pageController,
                   isDarkMode: _settingsController.isDarkMode.value,
                   isTajweed: false,
@@ -277,6 +296,8 @@ class _NormalQuranViewState extends State<NormalQuranView> {
                     }
                     setState(() {
                       _currentPage = pageNumber;
+                      // Clear highlights if we move to a different page
+                      _highlights.removeWhere((h) => h.page != pageNumber);
                     });
                     _saveProgressForPage(pageNumber);
                   },
@@ -352,6 +373,7 @@ class _NormalQuranViewState extends State<NormalQuranView> {
                                 _pageController.jumpToPage(page - 1);
                                 setState(() {
                                   _currentPage = page;
+                                  _highlights.clear();
                                 });
                                 _saveProgressForPage(page);
                               },

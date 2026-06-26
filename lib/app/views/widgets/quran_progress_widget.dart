@@ -83,7 +83,11 @@ class QuranProgressWidget extends StatelessWidget {
                       initialVerse: verseToUse,
                     ));
               } else {
-                Get.to(() => NormalQuranView(initialPage: pageToUse));
+                Get.to(() => NormalQuranView(
+                      initialPage: pageToUse,
+                      initialSurah: surahToUse,
+                      initialVerse: verseToUse,
+                    ));
               }
             },
             borderRadius: BorderRadius.circular(20),

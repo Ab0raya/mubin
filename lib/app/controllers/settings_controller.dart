@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import '../../utils/constants.dart';
+import 'home_controller.dart';
 
 class SettingsController extends GetxController {
   final box = GetStorage();
@@ -9,6 +11,7 @@ class SettingsController extends GetxController {
   // Settings State
   var isDarkMode = true.obs;
   var enableNotifications = true.obs;
+  var azanType = 'full'.obs; // 'full', 'half', 'notification'
   var prayerCalculationMethod = 5.obs; // Egypt
   var asrCalculationMethod = 0.obs; // Shafii (Standard)
   var quranReciter = 'Mishary Rashid Alafasy'.obs;
@@ -32,6 +35,7 @@ class SettingsController extends GetxController {
     readingBgColor.value = box.read('readingBgColor') ?? 0xFF121212;
     readingTextColor.value = box.read('readingTextColor') ?? 0xFFFFFFFF;
     favReadingMode.value = box.read('favReadingMode') ?? 'normal';
+    azanType.value = box.read(Constants.keyAzanType) ?? 'full';
   }
 
   void updateFavReadingMode(String value) {
@@ -72,6 +76,20 @@ class SettingsController extends GetxController {
     box.write('notifications', value);
   }
 
+  void updateAzanType(String value) {
+    azanType.value = value;
+    box.write(Constants.keyAzanType, value);
+    try {
+      if (Get.isRegistered<HomeController>()) {
+        final homeController = Get.find<HomeController>();
+        homeController.box.remove('last_notification_schedule_date');
+        homeController.schedulePrayerNotifications(DateTime.now());
+      }
+    } catch (e) {
+      debugPrint("Failed to reschedule notifications on azan type change: $e");
+    }
+  }
+
   void updateCalculationMethod(int value) {
     prayerCalculationMethod.value = value;
     box.write('calc_method', value);
@@ -101,10 +119,19 @@ class SettingsController extends GetxController {
     }
 
     try {
+      String testChannelKey = 'prayer_channel_full';
+      if (azanType.value == 'half') {
+        testChannelKey = 'prayer_channel_half';
+      } else if (azanType.value == 'notification') {
+        testChannelKey = 'prayer_channel_default';
+      }
+
+      final String timeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
+
       await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: 999, // Unique test ID
-          channelKey: 'prayer_channel',
+          channelKey: testChannelKey,
           title: 'Test Azan Alarm',
           body: 'This is a test of the offline Azan notification.',
           notificationLayout: NotificationLayout.Default,
@@ -114,6 +141,8 @@ class SettingsController extends GetxController {
         ),
         schedule: NotificationCalendar.fromDate(
           date: DateTime.now().add(const Duration(seconds: 5)),
+          // timeZone: timeZone,
+
         ),
       );
       Get.snackbar(

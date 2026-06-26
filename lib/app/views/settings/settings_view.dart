@@ -104,6 +104,7 @@ class SettingsView extends GetView<SettingsController> {
                   controller.toggleNotifications,
                 ),
               ),
+              _buildAzanSoundTypeTile(),
               _buildTile(
                 'pre_prayer_reminder'.tr,
                 'minutes_before'.tr,
@@ -346,6 +347,33 @@ class SettingsView extends GetView<SettingsController> {
           ],
           onChanged: (val) {
             if (val != null) controller.updateFavReadingMode(val);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAzanSoundTypeTile() {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      title: Text(
+        'adhan_sound_type'.tr,
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+      trailing: Obx(
+        () => DropdownButton<String>(
+          value: controller.azanType.value,
+          dropdownColor: AppColors.card,
+          underline: const SizedBox(),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+          style: const TextStyle(color: Colors.white),
+          items: [
+            DropdownMenuItem(value: 'full', child: Text('full_azan'.tr)),
+            DropdownMenuItem(value: 'half', child: Text('half_azan'.tr)),
+            DropdownMenuItem(value: 'notification', child: Text('notification_only'.tr)),
+          ],
+          onChanged: (val) {
+            if (val != null) controller.updateAzanType(val);
           },
         ),
       ),

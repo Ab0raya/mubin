@@ -346,6 +346,15 @@ class HomeController extends GetxController {
       return;
     }
 
+    final String azanType = box.read(Constants.keyAzanType) ?? 'full';
+    String resolvedChannelKey = 'prayer_channel_full';
+    if (azanType == 'half') {
+      resolvedChannelKey = 'prayer_channel_half';
+    } else if (azanType == 'notification') {
+      resolvedChannelKey = 'prayer_channel_default';
+    }
+    final String timeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
+
     final String todayStr = "${now.year}-${now.month}-${now.day}";
     final String? lastScheduledDate = box.read('last_notification_schedule_date');
     if (lastScheduledDate == todayStr) {
@@ -410,14 +419,17 @@ class HomeController extends GetxController {
             await AwesomeNotifications().createNotification(
               content: NotificationContent(
                 id: id,
-                channelKey: 'prayer_channel',
+                channelKey: resolvedChannelKey,
                 title: '${entry.key} Prayer',
                 body: 'It is time for ${entry.key} prayer.',
                 notificationLayout: NotificationLayout.Default,
                 wakeUpScreen: true,
                 category: NotificationCategory.Reminder,
               ),
-              schedule: NotificationCalendar.fromDate(date: entry.value),
+              schedule: NotificationCalendar.fromDate(
+                date: entry.value,
+                // timeZone: timeZone,
+              ),
             );
             scheduledCount++;
             debugPrint("Scheduled ${entry.key} at ${entry.value} with ID $id");

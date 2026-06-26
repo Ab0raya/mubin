@@ -87,7 +87,11 @@ class BookmarksView extends StatelessWidget {
                             initialVerse: lastReadVerse,
                           ));
                     } else {
-                      Get.to(() => NormalQuranView(initialPage: lastReadPage));
+                      Get.to(() => NormalQuranView(
+                            initialPage: lastReadPage,
+                            initialSurah: lastReadSurah,
+                            initialVerse: lastReadVerse,
+                          ));
                     }
                   },
                   borderRadius: BorderRadius.circular(12),
@@ -224,7 +228,11 @@ class BookmarksView extends StatelessWidget {
                               initialVerse: bookmarkVerse,
                             ));
                       } else {
-                        Get.to(() => NormalQuranView(initialPage: bookmarkPage));
+                        Get.to(() => NormalQuranView(
+                              initialPage: bookmarkPage,
+                              initialSurah: bookmarkSurah,
+                              initialVerse: bookmarkVerse,
+                            ));
                       }
                     },
                     borderRadius: BorderRadius.circular(12),

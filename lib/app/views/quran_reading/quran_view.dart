@@ -189,7 +189,11 @@ class QuranView extends StatelessWidget {
                                           initialVerse: result.verse,
                                         ));
                                   } else {
-                                    Get.to(() => NormalQuranView(initialPage: page));
+                                    Get.to(() => NormalQuranView(
+                                          initialPage: page,
+                                          initialSurah: result.surah,
+                                          initialVerse: result.verse,
+                                        ));
                                   }
                                 },
                                 splashColor: AppColors.gold.withOpacity(0.08),

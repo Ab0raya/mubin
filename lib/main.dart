@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:just_audio_background/just_audio_background.dart'; // Import this
+import 'package:qcf_quran_plus/qcf_quran_plus.dart';
 import 'app/translations/app_translations.dart';
 import 'app/routes/app_routes.dart';
 import 'utils/colors.dart';
@@ -15,10 +16,9 @@ void main() async {
   StartupProfiler.start();
   WidgetsFlutterBinding.ensureInitialized();
   StartupProfiler.log("Flutter Binding");
-
   await GetStorage.init();
   StartupProfiler.log("GetStorage");
-
+_initializeFonts();
   // Initialize JustAudioBackground
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
@@ -40,6 +40,41 @@ void main() async {
         importance: NotificationImportance.High,
         soundSource:
             'resource://raw/azan', // Uses android/app/src/main/res/raw/azan.mp3
+        playSound: true,
+        criticalAlerts: true,
+      ),
+      NotificationChannel(
+        channelGroupKey: 'basic_channel_group',
+        channelKey: 'prayer_channel_full',
+        channelName: 'Prayer Notifications (Full)',
+        channelDescription: 'Plays full Azan sound source',
+        defaultColor: const Color(0xFF0D1211),
+        ledColor: const Color(0xFF00E676),
+        importance: NotificationImportance.High,
+        soundSource: 'resource://raw/azan',
+        playSound: true,
+        criticalAlerts: true,
+      ),
+      NotificationChannel(
+        channelGroupKey: 'basic_channel_group',
+        channelKey: 'prayer_channel_half',
+        channelName: 'Prayer Notifications (Half)',
+        channelDescription: 'Plays half Azan sound source',
+        defaultColor: const Color(0xFF0D1211),
+        ledColor: const Color(0xFF00E676),
+        importance: NotificationImportance.High,
+        soundSource: 'resource://raw/azan_half',
+        playSound: true,
+        criticalAlerts: true,
+      ),
+      NotificationChannel(
+        channelGroupKey: 'basic_channel_group',
+        channelKey: 'prayer_channel_default',
+        channelName: 'Prayer Notifications (Default)',
+        channelDescription: 'Plays default notification sound',
+        defaultColor: const Color(0xFF0D1211),
+        ledColor: const Color(0xFF00E676),
+        importance: NotificationImportance.High,
         playSound: true,
         criticalAlerts: true,
       ),
@@ -69,6 +104,15 @@ void main() async {
 
   runApp(const MyApp());
 }
+
+  void _initializeFonts() async {
+    await QcfFontLoader.setupFontsAtStartup(
+      onProgress: (double progress) {
+        print('Font Loading Progress: ${(progress * 100).toStringAsFixed(1)}%');
+      },
+    );
+    // Navigate to your main Quran screen once loaded...
+  }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
