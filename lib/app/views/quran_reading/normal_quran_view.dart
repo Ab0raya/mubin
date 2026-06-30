@@ -534,21 +534,10 @@ class _NormalQuranViewState extends State<NormalQuranView> {
               const _PulsingIcon(),
               const SizedBox(height: 40),
               
-              Text(
-                'MUBIN',
-                style: GoogleFonts.outfit(
-                  color: AppColors.gold,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                  shadows: [
-                    Shadow(
-                      color: shadowColor,
-                      offset: const Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
+              Image.asset(
+                'assets/images/text_logo.png',
+                height: 35,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 8),
               Text(
@@ -707,10 +696,11 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
             width: 1.5,
           ),
         ),
-        child: const Icon(
-          Icons.menu_book_rounded,
-          color: AppColors.gold,
-          size: 72,
+        child: Image.asset(
+          'assets/images/logo.png',
+          width: 72,
+          height: 72,
+          fit: BoxFit.contain,
         ),
       ),
     );

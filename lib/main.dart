@@ -28,7 +28,7 @@ _initializeFonts();
   StartupProfiler.log("Audio Background");
 
   AwesomeNotifications().initialize(
-    null, // icon: null means use the default app icon
+    'resource://drawable/notification_icon',
     [
       NotificationChannel(
         channelGroupKey: 'basic_channel_group',

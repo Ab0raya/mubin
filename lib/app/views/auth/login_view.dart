@@ -63,23 +63,19 @@ class LoginView extends GetView<AuthController> {
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.wb_sunny_outlined, // Sun/Star icon like reference
-                        size: 40,
-                        color: AppColors.gold,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 24),
 
-                    const Text(
-                      'M U B I N',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w300,
-                        color: AppColors.gold,
-                        letterSpacing: 8,
-                        fontFamily: 'Roboto',
-                      ),
+                    Image.asset(
+                      'assets/images/text_logo.png',
+                      height: 30,
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(height: 8),
                     const Text(

@@ -138,8 +138,6 @@ class SettingsController extends GetxController {
         testChannelKey = 'prayer_channel_default';
       }
 
-      final String timeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
-
       await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: 999, // Unique test ID
@@ -153,8 +151,8 @@ class SettingsController extends GetxController {
         ),
         schedule: NotificationCalendar.fromDate(
           date: DateTime.now().add(const Duration(seconds: 5)),
-          // timeZone: timeZone,
-
+          preciseAlarm: true,
+          allowWhileIdle: true,
         ),
       );
       Get.snackbar(

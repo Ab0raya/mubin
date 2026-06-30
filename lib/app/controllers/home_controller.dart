@@ -353,7 +353,6 @@ class HomeController extends GetxController {
     } else if (azanType == 'notification') {
       resolvedChannelKey = 'prayer_channel_default';
     }
-    final String timeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
 
     final String todayStr = "${now.year}-${now.month}-${now.day}";
     final String? lastScheduledDate = box.read('last_notification_schedule_date');
@@ -428,7 +427,8 @@ class HomeController extends GetxController {
               ),
               schedule: NotificationCalendar.fromDate(
                 date: entry.value,
-                // timeZone: timeZone,
+                preciseAlarm: true,
+                allowWhileIdle: true,
               ),
             );
             scheduledCount++;

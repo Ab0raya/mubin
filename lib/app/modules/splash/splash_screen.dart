@@ -59,25 +59,21 @@ class _SplashScreenState extends State<SplashScreen> {
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.menu_book_rounded,
-                        color: AppColors.gold,
-                        size: 60,
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
                   const SizedBox(height: 30),
                   // App Title
-                  const Text(
-                    'MUBIN',
-                    style: TextStyle(
-                      fontFamily: 'TheYearofHandicrafts',
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.gold,
-                      letterSpacing: 4,
-                    ),
+                  Image.asset(
+                    'assets/images/text_logo.png',
+                    height: 50,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 10),
                   // Subtitle
