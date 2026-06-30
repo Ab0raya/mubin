@@ -4,6 +4,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import '../../utils/constants.dart';
 import 'home_controller.dart';
+import '../services/backend_service.dart';
+import '../routes/app_routes.dart';
 
 class SettingsController extends GetxController {
   final box = GetStorage();
@@ -100,6 +102,16 @@ class SettingsController extends GetxController {
     var locale = Locale(value, value == 'ar' ? 'SA' : 'US');
     Get.updateLocale(locale);
     box.write('language', value);
+  }
+
+  Future<void> logout() async {
+    try {
+      final backendService = Get.find<BackendService>();
+      await backendService.logout();
+      Get.offAllNamed(AppRoutes.login);
+    } catch (e) {
+      Get.offAllNamed(AppRoutes.login);
+    }
   }
 
   void triggerTestAzan() async {

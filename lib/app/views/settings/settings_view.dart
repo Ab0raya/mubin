@@ -130,9 +130,7 @@ class SettingsView extends GetView<SettingsController> {
 
             // Sign Out
             TextButton(
-              onPressed: () {
-                // Get.offAllNamed('/auth/login');
-              },
+              onPressed: () => controller.logout(),
               child: Text(
                 'sign_out'.tr,
                 style: const TextStyle(color: Colors.red),

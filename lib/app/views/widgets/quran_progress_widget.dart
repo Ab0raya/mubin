@@ -9,7 +9,6 @@ import '../../controllers/quran_image_controller.dart';
 import '../quran_reading/normal_quran_view.dart';
 import '../quran_reading/image_quran_view.dart';
 import '../quran_reading/surah_detail_view.dart';
-import '../../routes/app_routes.dart';
 
 class QuranProgressWidget extends StatelessWidget {
   const QuranProgressWidget({super.key});
@@ -36,7 +35,7 @@ class QuranProgressWidget extends StatelessWidget {
 
       final surahNameEnglish = controller.getSurahNameEnglish(surahToUse);
       final surahNameArabic = controller.getSurahName(surahToUse);
-      final progress = pageToUse / 604.0;
+      final progress = hasBookmark ? (pageToUse / 604.0) : 0.0;
       final percentage = (progress * 100).toStringAsFixed(0);
 
       final isArabic = Get.locale?.languageCode == 'ar';
@@ -58,35 +57,40 @@ class QuranProgressWidget extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
-              if (!hasBookmark) {
-                Get.toNamed(AppRoutes.quranBookmarks);
-                return;
-              }
-
               final settingsController = Get.put(SettingsController());
               final imageController = Get.put(QuranImageController());
               final largeQuranController = Get.find<LargeQuranController>();
               final favMode = settingsController.favReadingMode.value;
 
+              int navPage = pageToUse;
+              int navSurah = surahToUse;
+              int navVerse = verseToUse;
+
+              if (!hasBookmark) {
+                navSurah = largeQuranController.lastReadSurah.value;
+                navVerse = largeQuranController.lastReadVerse.value;
+                navPage = largeQuranController.lastReadPage.value;
+              }
+
               if (favMode == 'image') {
                 if (imageController.isDownloaded.value) {
-                  Get.to(() => ImageQuranView(initialPage: pageToUse));
+                  Get.to(() => ImageQuranView(initialPage: navPage));
                 } else {
                   imageController.showDownloadDialog(onSuccess: () {
-                    Get.to(() => ImageQuranView(initialPage: pageToUse));
+                    Get.to(() => ImageQuranView(initialPage: navPage));
                   });
                 }
               } else if (favMode == 'large') {
-                largeQuranController.currentSurahNumber.value = surahToUse;
+                largeQuranController.currentSurahNumber.value = navSurah;
                 Get.to(() => SurahDetailView(
-                      surahNumber: surahToUse,
-                      initialVerse: verseToUse,
+                      surahNumber: navSurah,
+                      initialVerse: navVerse,
                     ));
               } else {
                 Get.to(() => NormalQuranView(
-                      initialPage: pageToUse,
-                      initialSurah: surahToUse,
-                      initialVerse: verseToUse,
+                      initialPage: navPage,
+                      initialSurah: navSurah,
+                      initialVerse: navVerse,
                     ));
               }
             },

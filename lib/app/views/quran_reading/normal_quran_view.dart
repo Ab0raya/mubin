@@ -277,38 +277,60 @@ class _NormalQuranViewState extends State<NormalQuranView> {
                         });
                       },
                 behavior: HitTestBehavior.translucent,
-                child: QuranPageView(
-                  highlights: _highlights,
-                  pageController: _pageController,
-                  isDarkMode: _settingsController.isDarkMode.value,
-                  isTajweed: false,
-                  pageBackgroundColor: Color(
-                    _settingsController.readingBgColor.value,
-                  ),
-                  ayahStyle: TextStyle(
-                    color: Color(_settingsController.readingTextColor.value),
-                  ),
-                  onPageChanged: (pageNumber) {
-                    final newQuarter = _getQuarterForPage(pageNumber);
-                    if (newQuarter != _currentQuarter) {
-                      _currentQuarter = newQuarter;
-                      _showQuarterPopup(newQuarter);
-                    }
-                    setState(() {
-                      _currentPage = pageNumber;
-                      // Clear highlights if we move to a different page
-                      _highlights.removeWhere((h) => h.page != pageNumber);
-                    });
-                    _saveProgressForPage(pageNumber);
-                  },
-                  onLongPress: (surahNumber, verseNumber, details) {
-                    Get.bottomSheet(
-                      VerseActionSheet(
-                        surahNumber: surahNumber,
-                        verseNumber: verseNumber,
+                child: OrientationBuilder(
+                  builder: (context, orientation) {
+                    final isLandscape = orientation == Orientation.landscape;
+                    final quranPageView = QuranPageView(
+                      highlights: _highlights,
+                      pageController: _pageController,
+                      isDarkMode: _settingsController.isDarkMode.value,
+                      isTajweed: false,
+                      pageBackgroundColor: Color(
+                        _settingsController.readingBgColor.value,
                       ),
-                      isScrollControlled: true,
+                      ayahStyle: TextStyle(
+                        color: Color(_settingsController.readingTextColor.value),
+                      ),
+                      onPageChanged: (pageNumber) {
+                        final newQuarter = _getQuarterForPage(pageNumber);
+                        if (newQuarter != _currentQuarter) {
+                          _currentQuarter = newQuarter;
+                          _showQuarterPopup(newQuarter);
+                        }
+                        setState(() {
+                          _currentPage = pageNumber;
+                          // Clear highlights if we move to a different page
+                          _highlights.removeWhere((h) => h.page != pageNumber);
+                        });
+                        _saveProgressForPage(pageNumber);
+                      },
+                      onLongPress: (surahNumber, verseNumber, details) {
+                        Get.bottomSheet(
+                          VerseActionSheet(
+                            surahNumber: surahNumber,
+                            verseNumber: verseNumber,
+                          ),
+                          isScrollControlled: true,
+                        );
+                      },
                     );
+
+                    if (isLandscape) {
+                      final screenHeight = MediaQuery.of(context).size.height;
+                      final pageHeight = screenHeight * 1.8; // scale page height to be 1.8x the screen height for large text
+                      return SingleChildScrollView(
+                        child: Center(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 20),
+                            width: pageHeight * (11 / 16),
+                            height: pageHeight,
+                            child: quranPageView,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return quranPageView;
                   },
                 ),
               ),

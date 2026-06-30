@@ -132,20 +132,20 @@ class LoginView extends GetView<AuthController> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 _buildLabel('PASSWORD'),
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: GestureDetector(
-                                    onTap: () {}, // Forgot password
-                                    child: const Text(
-                                      'FORGOT?',
-                                      style: TextStyle(
-                                        color: AppColors.gold,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () => _showForgotPasswordBottomSheet(context),
+                                      child: const Text(
+                                        'FORGOT?',
+                                        style: TextStyle(
+                                          color: AppColors.gold,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -365,6 +365,163 @@ class LoginView extends GetView<AuthController> {
               )
             : null,
       ),
+    );
+  }
+
+  void _showForgotPasswordBottomSheet(BuildContext context) {
+    final TextEditingController forgotEmailController = TextEditingController(text: controller.emailController.text);
+    final TextEditingController otpController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final GlobalKey<FormState> forgotFormKey = GlobalKey<FormState>();
+    bool isOtpSent = false;
+    bool localLoading = false;
+
+    Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0D1211),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Form(
+              key: forgotFormKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      isOtpSent ? 'RESET PASSWORD' : 'FORGOT PASSWORD',
+                      style: const TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isOtpSent
+                          ? 'Enter the 6-digit OTP sent to your email and your new password.'
+                          : 'Enter your email address to receive a 6-digit password reset OTP code.',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    if (!isOtpSent) ...[
+                      _buildLabel('EMAIL ADDRESS'),
+                      const SizedBox(height: 8),
+                      _buildInput(
+                        controller: forgotEmailController,
+                        hintText: 'name@example.com',
+                        validator: controller.validateEmail,
+                      ),
+                    ] else ...[
+                      _buildLabel('EMAIL ADDRESS'),
+                      const SizedBox(height: 8),
+                      _buildInput(
+                        controller: forgotEmailController,
+                        hintText: 'name@example.com',
+                        validator: controller.validateEmail,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildLabel('OTP CODE'),
+                      const SizedBox(height: 8),
+                      _buildInput(
+                        controller: otpController,
+                        hintText: '123456',
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Enter OTP';
+                          if (val.length != 6) return 'OTP must be 6 digits';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildLabel('NEW PASSWORD'),
+                      const SizedBox(height: 8),
+                      _buildInput(
+                        controller: newPasswordController,
+                        hintText: '••••••••',
+                        isPassword: true,
+                        validator: controller.validatePassword,
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: localLoading
+                          ? null
+                          : () async {
+                              if (forgotFormKey.currentState!.validate()) {
+                                setState(() {
+                                  localLoading = true;
+                                });
+                                try {
+                                  if (!isOtpSent) {
+                                    final success = await controller.requestPasswordOtp(
+                                      forgotEmailController.text,
+                                    );
+                                    if (success) {
+                                      setState(() {
+                                        isOtpSent = true;
+                                      });
+                                    }
+                                  } else {
+                                    final success = await controller.resetPasswordWithOtp(
+                                      forgotEmailController.text,
+                                      otpController.text,
+                                      newPasswordController.text,
+                                    );
+                                    if (success) {
+                                      Get.back(); // close bottom sheet
+                                    }
+                                  }
+                                } finally {
+                                  setState(() {
+                                    localLoading = false;
+                                  });
+                                }
+                              }
+                            },
+                      child: localLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              isOtpSent ? 'RESET PASSWORD' : 'SEND OTP',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      isScrollControlled: true,
     );
   }
 }

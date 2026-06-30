@@ -51,6 +51,8 @@ class Reciter {
         return "assets/images/reciters/icfe-بدر بليله.png";
       case "Muhammad Ayyub":
         return "assets/images/reciters/icfe-محمد ايوب.png";
+      case "Bader Al-Turki":
+        return "assets/images/reciters/icfe-بدر التركي.png";
       default:
         return "assets/images/quran_cover.png";
     }
@@ -163,6 +165,11 @@ class Reciter {
       name: "Muhammad Ayyub",
       arabicName: "محمد أيوب",
       serverUrl: "https://server8.mp3quran.net/ayyub/",
+    ),
+    Reciter(
+      name: "Bader Al-Turki",
+      arabicName: "بدر التركي",
+      serverUrl: "https://server10.mp3quran.net/bader/Rewayat-Hafs-A-n-Assem/",
     ),
   ];
 }

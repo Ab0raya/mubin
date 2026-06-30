@@ -4,6 +4,9 @@ import 'package:get_storage/get_storage.dart';
 import '../../utils/constants.dart';
 import '../routes/app_routes.dart';
 
+import 'package:dio/dio.dart';
+import '../services/backend_service.dart';
+
 class AuthController extends GetxController {
   // Form Keys
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
@@ -44,8 +47,8 @@ class AuthController extends GetxController {
     if (value == null || value.isEmpty) {
       return 'Please enter your password';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
     }
     return null;
   }
@@ -61,10 +64,17 @@ class AuthController extends GetxController {
     if (loginFormKey.currentState!.validate()) {
       try {
         isLoading.value = true;
-        // Simulate network delay
-        await Future.delayed(const Duration(seconds: 2));
 
-        // Success
+        final backendService = Get.find<BackendService>();
+        final response = await backendService.login(
+          email: emailController.text.trim(),
+          password: passwordController.text,
+        );
+
+        final token = response.data['token'];
+        final box = GetStorage();
+        box.write(Constants.keyAuthToken, token);
+
         Get.snackbar(
           'Success',
           'Logged in successfully',
@@ -75,9 +85,15 @@ class AuthController extends GetxController {
 
         _onSuccess();
       } catch (e) {
+        String errorMsg = 'Login failed';
+        if (e is DioException) {
+          errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+        } else {
+          errorMsg = e.toString();
+        }
         Get.snackbar(
           'Error',
-          'Login failed: $e',
+          errorMsg,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -92,10 +108,21 @@ class AuthController extends GetxController {
     if (registerFormKey.currentState!.validate()) {
       try {
         isLoading.value = true;
-        // Simulate network delay
-        await Future.delayed(const Duration(seconds: 2));
 
-        // Success
+        final backendService = Get.find<BackendService>();
+        // Clean name to make it a valid username (alphanumeric with underscores)
+        final username = nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+
+        final response = await backendService.register(
+          username: username,
+          email: emailController.text.trim(),
+          password: passwordController.text,
+        );
+
+        final token = response.data['token'];
+        final box = GetStorage();
+        box.write(Constants.keyAuthToken, token);
+
         Get.snackbar(
           'Success',
           'Account created successfully',
@@ -106,9 +133,21 @@ class AuthController extends GetxController {
 
         _onSuccess();
       } catch (e) {
+        String errorMsg = 'Registration failed';
+        if (e is DioException) {
+          final errorData = e.response?.data;
+          if (errorData is Map && errorData.containsKey('errors')) {
+            final errors = errorData['errors'] as Map;
+            errorMsg = errors.values.map((v) => (v as List).join(', ')).join('\n');
+          } else {
+            errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+          }
+        } else {
+          errorMsg = e.toString();
+        }
         Get.snackbar(
           'Error',
-          'Registration failed: $e',
+          errorMsg,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -121,7 +160,6 @@ class AuthController extends GetxController {
 
   Future<void> loginWithGoogle() async {
     isLoading.value = true;
-    // Simulate network delay
     await Future.delayed(const Duration(seconds: 2));
 
     Get.snackbar(
@@ -133,6 +171,85 @@ class AuthController extends GetxController {
     );
     isLoading.value = false;
     _onSuccess();
+  }
+
+  Future<bool> requestPasswordOtp(String email) async {
+    try {
+      isLoading.value = true;
+      final backendService = Get.find<BackendService>();
+      await backendService.forgotPassword(email.trim());
+      Get.snackbar(
+        'OTP Sent',
+        'Check your email (or laravel.log in local dev) for the 6-digit OTP code.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      String errorMsg = 'Failed to request OTP';
+      if (e is DioException) {
+        errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+      }
+      Get.snackbar(
+        'Error',
+        errorMsg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> resetPasswordWithOtp(String email, String otp, String newPassword) async {
+    try {
+      isLoading.value = true;
+      final backendService = Get.find<BackendService>();
+      await backendService.resetPassword(
+        email: email.trim(),
+        otp: otp.trim(),
+        password: newPassword,
+      );
+      Get.snackbar(
+        'Success',
+        'Password reset successfully. You can now sign in.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      String errorMsg = 'Failed to reset password';
+      if (e is DioException) {
+        errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+      }
+      Get.snackbar(
+        'Error',
+        errorMsg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      isLoading.value = true;
+      final backendService = Get.find<BackendService>();
+      await backendService.logout();
+      Get.offAllNamed(AppRoutes.login);
+    } catch (e) {
+      Get.offAllNamed(AppRoutes.login);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void _onSuccess() {

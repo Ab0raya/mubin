@@ -290,6 +290,27 @@ class _ImageQuranViewState extends State<ImageQuranView> {
                   );
                 }
 
+                final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+                if (isLandscape) {
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  final pageHeight = screenHeight * 1.8; // scale page height to be 1.8x the screen height for large text
+                  return SingleChildScrollView(
+                    child: Center(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 20),
+                        width: pageHeight * (11 / 16),
+                        height: pageHeight,
+                        child: Image.file(
+                          imageFile,
+                          fit: BoxFit.fill,
+                          alignment: Alignment.center,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
                 return SafeArea(
                   child: SizedBox.expand(
                     child: Image.file(
